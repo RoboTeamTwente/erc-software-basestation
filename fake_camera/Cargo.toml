@@ -1,0 +1,13 @@
+[package]
+name = "fake_camera"
+version = "0.1.0"
+edition = "2021"
+
+# Optional description
+authors = ["Your Name <you@example.com>"]
+description = "Simulates a camera by sending JPEG frames over UDP"
+license = "MIT"
+
+[dependencies]
+image = "0.24"      # For generating JPEG frames
+anyhow = "1"        # For simple error handling
