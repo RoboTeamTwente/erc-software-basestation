@@ -1,5 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod commands;
+use std::sync::Arc;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -13,22 +14,22 @@ pub fn run() {
             commands::save_data::read_task_file,
             commands::save_data::import_map_file,
             commands::checks::ping,
-            commands::video::fetch_snapshot,
         ])
         .setup(|app| {
             if let Err(e) = commands::save_data::ensure_storage_dirs_internal(app.handle()) {
                 eprintln!("Failed to ensure storage dirs: {}", e);
             }
-            // Spawn the MJPEG + UDP server in the background
+            // Spawn gstream receiver
             tauri::async_runtime::spawn(async {
                 // Import your streaming module
-                if let Err(e) = commands::video::start_server().await {
+                if let Err(e) = commands::gstreamer::stream().await {
                     eprintln!("MJPEG streaming server error: {}", e);
                 }
             });
 
             Ok(())
         })
+
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

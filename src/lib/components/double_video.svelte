@@ -1,37 +1,51 @@
 <script lang="ts">
     import '../../global.css';
-    import { invoke } from "@tauri-apps/api/core";
-    export let style: string = "";
 
-    let imgUrl: string | null = null;
+    let { port1, port2 } = $props();
 
-    async function startPolling() {
-        while (true) {
-            const bytes: number[] = await invoke("fetch_snapshot", { port: 5000 });
-            const blob = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
+    let videoUrl1 = "http://localhost:" + port1;
+    let videoUrl2 = "http://localhost:" + port2;
 
-            if (imgUrl) URL.revokeObjectURL(imgUrl);
-            imgUrl = URL.createObjectURL(blob);
-
-            await new Promise(r => setTimeout(r, 33));
-        }
+    let toggle = $state(true)
+    async function toggleVideo(){
+        toggle = !toggle;
     }
-    startPolling();
+
 </script>
 
 <div class="frame">
-    <h1 class="heading">FRONT VIDEO</h1>
-    <img
-    src={imgUrl}
-    class="video-img"
-    alt="Video feed"
-    />
-    <div class="frame" style="height: 30%; width: 25%; align-self: flex-end; margin: 10px; position: absolute; bottom: 0;">
+    {#if toggle}
+        <h1 class="heading">FRONT VIDEO</h1>
+        <img
+        src={videoUrl1}
+        class="video-img"
+        alt="Video feed from port {port1}"
+        />
+    {/if}
+    {#if !toggle}
         <h1 class="heading"> POLE VIDEO </h1>
         <img
-        src={imgUrl}
+        src={videoUrl2}
         class="video-img"
-        alt="Video feed"
+        alt="Video feed from port {port2}"
         />
-    </div>
+    {/if}
+    <button class="frame" style="height: 30%; width: 25%; align-self: flex-end; margin: 10px; position: absolute; bottom: 0; cursor: pointer" onclick={() => toggleVideo()}>
+        {#if toggle}
+            <h1 class="heading"> POLE VIDEO </h1>
+            <img
+            src={videoUrl2}
+            class="video-img"
+            alt="Video feed from port {port2}"
+            />
+        {/if}
+        {#if !toggle}
+            <h1 class="heading">FRONT VIDEO</h1>
+            <img
+            src={videoUrl1}
+            class="video-img"
+            alt="Video feed from port {port1}"
+            />
+        {/if}
+    </button>
 </div>

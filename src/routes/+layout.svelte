@@ -23,6 +23,7 @@
 
     //Keep track of mode
     let manualMode = $state(true);
+    let controlMode = $state("Manual")
 
     // Toggle the first dropdown (Task menu)
     function toggleDropdown() {
@@ -32,6 +33,15 @@
     // Toggle the second dropdown (Control Mode menu)
     function toggleDropdown2() {
         dropdownOpen2 = !dropdownOpen2;
+    }
+
+    function toggleControlMode(){
+        dropdownOpen2 = false;
+        if (manualMode){
+            controlMode = "Manual";
+        } else {
+            controlMode = "Automatic"
+        }
     }
 
     // Navigate to a path and close the dropdown
@@ -126,35 +136,39 @@
     }
 
     async function reset() {
-        stop();
-        if (confirm("Are you sure you want to end the current task?")) {
-            cancelAnimationFrame(rafId);
+        if (elapsed!=0) {
+            stop();
+            if (confirm("Are you sure you want to end the current task?")) {
+                cancelAnimationFrame(rafId);
 
-            await listTaskFiles();
+                await listTaskFiles();
 
-            const prefix = getNextTaskPrefix(runningTask, taskFiles);
-            const normalizedName = runningTask.replace(" ", "_").toLowerCase();
-            const fileName = `${prefix}_${normalizedName}.json`;
+                const prefix = getNextTaskPrefix(runningTask, taskFiles);
+                const normalizedName = runningTask.replace(" ", "_").toLowerCase();
+                const fileName = `${prefix}_${normalizedName}.json`;
 
-            const encoder = new TextEncoder();
-            const data = encoder.encode(
-                JSON.stringify({
-                    task_name: runningTask,
-                    completion_time: elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`,
-                    finished_at: new Date().toISOString(),
-                })
-            );
+                const encoder = new TextEncoder();
+                const data = encoder.encode(
+                    JSON.stringify({
+                        task_name: runningTask,
+                        completion_time: elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`,
+                        finished_at: new Date().toISOString(),
+                    })
+                );
 
-            await invoke("save_task_file", {
-                directory: "tasks",
-                fileName: fileName,
-                data: data,
-            });
+                await invoke("save_task_file", {
+                    directory: "tasks",
+                    fileName: fileName,
+                    data: data,
+                });
 
-            elapsed = 0;
-            runningTask = "None";
+                elapsed = 0;
+                runningTask = "None";
+            } else {
+                start(); // Resume if not confirmed
+            }
         } else {
-            start(); // Resume if not confirmed
+            return;
         }
     }
 
@@ -191,14 +205,14 @@
     <!-- Control Mode dropdown menu -->
     <div class="dropdown" bind:this={dropdownEl2} class:show={dropdownOpen2}>
         <button class="dropdown-button" onclick={toggleDropdown2}>
-            Control Mode  ▼
+            {controlMode} ▼ 
         </button>
         <div class="dropdown-content">
             <!-- TODO: Implement manual mode navigation -->
-            <a href="#" onclick={() => { manualMode = true ; dropdownOpen2 = false}}>
+            <a href="#" onclick={() => { manualMode = true ; toggleControlMode()}}>
                 Manual
             </a>
-            <a href="#" onclick={() => { manualMode = false ; dropdownOpen2 = false}}>
+            <a href="#" onclick={() => { manualMode = false ; toggleControlMode()}}>
                 Automatic
             </a>
         </div>

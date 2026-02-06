@@ -24,6 +24,6 @@
   </div>
 
   <div class="grid-item" style="padding-right: 0">
-    <Video style="width: 100%; height: 100%;" />
+    <Video port={5000}/>
   </div>
 </main>

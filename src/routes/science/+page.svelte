@@ -16,7 +16,7 @@
       </div>
     </div>
     <div class="grid-item" style="padding-right: 0">
-      <Video style="width: 100%; height: 100%;"/>
+      <Video port={5000}/>
     </div>
     <div class="grid-item" style="padding-left: 0">
       <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">

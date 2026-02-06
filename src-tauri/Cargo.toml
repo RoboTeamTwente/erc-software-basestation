@@ -31,9 +31,8 @@ tauri-plugin-fs = "2"
 reqwest = { version = "0.12", features = ["json", "stream"] }
 tauri-plugin-dialog = "2.6.0"
 image = "0.24"
-gstreamer = "0.24"
-gstreamer-video = "0.24"
-gstreamer-app = "0.24"
-
-
-
+gstreamer = "0.22"
+gstreamer-video = "0.22"
+gstreamer-app = "0.22"
+warp = "0.3"
+futures-util = "0.3.31"

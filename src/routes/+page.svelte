@@ -7,7 +7,7 @@
 <div class="grid">
 
   <div class="grid-item" style="padding-right: 0">
-    <Double_Video style="width: 100%; height: 100%;" />
+    <Double_Video port1={"5000"} port2={"5001"} />
   </div>
 
 
@@ -29,7 +29,7 @@
 
     <div class="grid-item">
       <div class="container">
-        Useless pretty model
+        Model
       </div>
     </div>
 

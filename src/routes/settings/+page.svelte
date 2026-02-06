@@ -57,27 +57,27 @@
 </script>
 
 <div>
-  <button class="button" style="margin: 10px;" on:click={ping}>
+  <button class="button" style="margin: 10px;" onclick={ping}>
     Ping Rust
   </button>
 
-  <button class="button" style="margin: 10px;" on:click={() => listFiles("tasks")}>
+  <button class="button" style="margin: 10px;" onclick={() => listFiles("tasks")}>
     List task files
   </button>
 
-  <button class="button" style="margin: 10px;" on:click={() => listFiles("images")}>
+  <button class="button" style="margin: 10px;" onclick={() => listFiles("images")}>
     List image files
   </button>
 
-  <button class="button" style="margin: 10px;" on:click={() => saveSnapshot()}>
+  <button class="button" style="margin: 10px;" onclick={() => saveSnapshot()}>
     Save an image file
   </button>
 
-  <button class="button" style="margin: 10px;" on:click={() => clearAllFiles("tasks")}>
+  <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("tasks")}>
     Delete all task files
   </button>
 
-  <button class="button" style="margin: 10px;" on:click={() => clearAllFiles("images")}>
+  <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("images")}>
     Delete all image files
   </button>
 
@@ -90,7 +90,7 @@
               <li>
                 <button
                   class="link-button"
-                  on:click={() => openTaskFile(file)}
+                  onclick={() => openTaskFile(file)}
                 >
                   {file}
                 </button>
