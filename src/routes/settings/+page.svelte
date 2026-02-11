@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-
+  
   async function ping() {
     await invoke("ping");
   }
@@ -45,13 +45,7 @@
   }
 
   async function saveSnapshot() {
-    const bytes: number[] = await invoke("fetch_snapshot", { port: 4500 });
-
-    await invoke("save_task_file", {
-      directory: "images",
-      fileName: "snapshot.jpg",
-      data: bytes,
-    });
+    return;
   }
 
 </script>
@@ -69,6 +63,10 @@
     List image files
   </button>
 
+  <button class="button" style="margin: 10px;" onclick={() => listFiles("maps")}>
+    List map files
+  </button>
+
   <button class="button" style="margin: 10px;" onclick={() => saveSnapshot()}>
     Save an image file
   </button>
@@ -79,6 +77,10 @@
 
   <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("images")}>
     Delete all image files
+  </button>
+
+  <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("maps")}>
+    Delete all map files
   </button>
 
   <div>

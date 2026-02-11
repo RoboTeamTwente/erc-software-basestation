@@ -15,7 +15,7 @@
 
 <div class="frame">
     {#if toggle}
-        <h1 class="heading">FRONT VIDEO</h1>
+        <h1 class="heading">POLE VIDEO</h1>
         <img
         src={videoUrl1}
         class="video-img"
@@ -23,7 +23,7 @@
         />
     {/if}
     {#if !toggle}
-        <h1 class="heading"> POLE VIDEO </h1>
+        <h1 class="heading"> FRONT VIDEO </h1>
         <img
         src={videoUrl2}
         class="video-img"

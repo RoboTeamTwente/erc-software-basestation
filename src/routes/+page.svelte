@@ -2,6 +2,8 @@
   import Double_Video from '$lib/components/double_video.svelte';
   import Map from '$lib/components/map.svelte';
   import NavigationPlan from '$lib/components/navigation_plan.svelte';
+
+
 </script>
 
 <div class="grid">
@@ -23,19 +25,19 @@
 
     <div class="grid-item">
       <div class="container">
-        Short Instructions for controls
+        <h1 class="heading">Short Instructions for controls</h1>
       </div>
     </div>
 
     <div class="grid-item">
       <div class="container">
-        Model
+        <h1 class="heading">Model</h1>
       </div>
     </div>
 
     <div class="grid-item">
       <div class="container">
-        Task Completion Overview
+        <h1 class="heading">Task Completion Overview</h1>
       </div>
     </div>
 
@@ -43,7 +45,7 @@
 
 
   <div class="grid-item" style="padding-right: 0">
-    <Map style="width: 100%; height: 100%;"/>
+    <Map />
   </div>
 
 
@@ -55,7 +57,7 @@
 
     <div class="grid-item">
       <div class="container">
-        IMU and Sensor Data
+        <h1 class="heading">IMU and Sensor Data</h1> 
       </div>
     </div>
 
