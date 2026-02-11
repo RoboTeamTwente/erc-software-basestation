@@ -20,7 +20,7 @@ pub fn run() {
             commands::file_management::read_task_file,
             commands::file_management::import_map_file,
             commands::file_management::get_app_dir,
-            commands::file_management::browse_in,
+            commands::file_management::save_snapshot,
             commands::checks::ping,
             commands::maps::selected_map_to_backend,
             commands::maps::selected_map_from_backend,

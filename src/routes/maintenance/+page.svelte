@@ -15,7 +15,7 @@
       </div>
     </div>
     <div class="grid-item" style="padding-right: 0">
-      <Video port={"5000"}/>
+      <Video port={"5002"}/>
     </div>
     <div class="grid-item">
       <div class="container">

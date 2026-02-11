@@ -5,29 +5,23 @@
 
     let { style } = $props();
 
-    let fileBrowser = $state(false);
-    let baseDir = $state("");
-    let files: { name: string; is_dir: boolean }[] = $state([]);
-    let currentDirectory = $state("");
-    let selectedFile: string | null = $state(null);
+    async function import_file() {
+        const selected = await open({
+            multiple: false,
+            directory: false,
+            filters: [
+                {
+                    name: "Map Files",
+                    extensions: ["json", "geojson", "txt", "jpeg"] // adjust
+                }
+            ]
+        });
 
-  async function import_file() {
-    const selected = await open({
-        multiple: false,
-        directory: false,
-        filters: [
-            {
-                name: "Map Files",
-                extensions: ["json", "geojson", "txt", "jpeg"] // adjust
-            }
-        ]
-    });
+        if (!selected || Array.isArray(selected)) return;
 
-    if (!selected || Array.isArray(selected)) return;
-
-    // selected is FULL FILE PATH ---------------------------TODO:WHAT DOES THIS DO
-    await invoke("import_map_file", { directory: selected });
-  }
+        // selected is FULL FILE PATH
+        await invoke("import_map_file", { directory: selected });
+    }
 
 </script>
 
@@ -101,24 +95,4 @@
         height: fit-content;
         overflow: hidden;
     }
-
-    /* Overlay stays mostly the same */
-    .overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    }
-
-    .path {
-    font-size: 0.85rem;
-    color: #444;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    }
-
 </style>

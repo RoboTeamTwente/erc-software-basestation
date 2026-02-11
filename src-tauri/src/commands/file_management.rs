@@ -1,7 +1,7 @@
 use tauri::{AppHandle, Manager};
 use std::fs;
 use std::path::PathBuf;
-use serde::Serialize;
+use tokio::io::AsyncWriteExt;
 
 // Take a reference instead of moving
 pub fn ensure_storage_dirs_internal(app: &AppHandle) -> Result<(), String> {
@@ -122,33 +122,77 @@ pub fn get_app_dir(app: AppHandle) -> Result<String, String> {
     Ok(app_dir.to_string_lossy().to_string())
 }
 
-#[derive(Serialize)]
-pub struct FileEntry {
-    pub name: String,
-    pub is_dir: bool,
-}
-
-
+//Save image from video (for Science task)
 #[tauri::command]
-pub fn browse_in(directory: String) -> Result<Vec<FileEntry>, String> {
-    let chosen_dir = PathBuf::from(&directory);
+pub async fn save_snapshot(app: AppHandle, port: String) -> Result<(), String> {
+    use tokio::fs;
+    use std::io::Read;
 
-    if !chosen_dir.exists() {
-        println!("Couldn't find directory {}", &directory);
-        return Ok(vec![]);
+    let images_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("images");
+
+    if fs::metadata(&images_dir).await.is_err() {
+        fs::create_dir_all(&images_dir)
+            .await
+            .map_err(|e| format!("Failed to create images directory: {}", e))?;
     }
 
-    let entries = fs::read_dir(chosen_dir)
-        .map_err(|e| e.to_string())?
-        .filter_map(|e| e.ok())
-        .map(|entry| {
-            let path = entry.path();
-            FileEntry {
-                name: entry.file_name().to_string_lossy().to_string(),
-                is_dir: path.is_dir(),
-            }
-        })
-        .collect();
+    let url = format!("http://localhost:{}", port);
 
-    Ok(entries)
+    // Spawn blocking to safely fetch the first JPEG frame
+    let jpeg_data = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, String> {
+        let mut resp = reqwest::blocking::get(&url).map_err(|e| e.to_string())?;
+        let mut buffer = Vec::new();
+        let mut temp = [0u8; 1024]; // read in chunks
+        let mut found_start = false;
+
+        while let Ok(n) = resp.read(&mut temp) {
+            if n == 0 {
+                break;
+            }
+
+            buffer.extend_from_slice(&temp[..n]);
+
+            if !found_start {
+                if let Some(pos) = buffer.windows(2).position(|w| w == [0xFF, 0xD8]) {
+                    buffer = buffer[pos..].to_vec(); // discard anything before JPEG start
+                    found_start = true;
+                } else {
+                    buffer.clear();
+                }
+            }
+
+            if found_start && buffer.windows(2).any(|w| w == [0xFF, 0xD9]) {
+                break; // stop after first JPEG frame
+            }
+
+            // Safety: limit max size to 5MB to avoid huge buffers
+            if buffer.len() > 5_000_000 {
+                return Err("Frame too large".into());
+            }
+        }
+
+        if buffer.is_empty() {
+            return Err("No JPEG frame found".into());
+        }
+
+        Ok(buffer)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+    let file_path = images_dir.join(format!("snapshot_{}.jpg", timestamp)); // ---------> TODO: change naming to match task and sample
+
+    let mut file = fs::File::create(file_path)
+        .await
+        .map_err(|e| format!("Failed to create file: {}", e))?;
+    file.write_all(&jpeg_data)
+        .await
+        .map_err(|e| format!("Failed to write file: {}", e))?;
+
+    Ok(())
 }

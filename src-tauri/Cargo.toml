@@ -28,7 +28,7 @@ bytes = "1"
 anyhow = "1"        # For simple error handling
 async-stream = "0.3"
 tauri-plugin-fs = "2"
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["blocking"] }
 tauri-plugin-dialog = "2.6.0"
 image = "0.24"
 gstreamer = "0.22"
@@ -36,3 +36,4 @@ gstreamer-video = "0.22"
 gstreamer-app = "0.22"
 warp = "0.3"
 futures-util = "0.3.31"
+chrono = "0.4.43"
