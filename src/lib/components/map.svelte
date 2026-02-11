@@ -17,6 +17,10 @@
 
     async function loadMap() {
         openedMap = await invoke("selected_map_from_backend");
+        if (openedMap == ""){
+            openedMap = null;
+            listMaps();
+        }
     }
 
     async function listMaps() {

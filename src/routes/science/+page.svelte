@@ -6,9 +6,9 @@
 
 <main class="grid" style="grid-template-rows: 1fr; grid-template-columns: 5fr 3fr;">
 
-  <div class="grid-nest" style="grid template-rows: 1fr 1fr; grid-template-columns: 4fr 1fr;">
+  <div class="grid-nest" style="grid-template-rows: 1fr 1fr; grid-template-columns: 4fr 1fr;">
     <div class="grid-item" style="padding-right: 0">
-      <Map style="width: 100%; height: 100%;"/>
+      <Map/>
     </div>
     <div class="grid-item" style="padding-left: 0;">
       <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
@@ -16,7 +16,7 @@
       </div>
     </div>
     <div class="grid-item" style="padding-right: 0">
-      <Video port={5000}/>
+      <Video port={"5000"}/>
     </div>
     <div class="grid-item" style="padding-left: 0">
       <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">

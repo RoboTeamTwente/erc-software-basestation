@@ -25,13 +25,11 @@ pub fn ensure_storage_dirs_internal(app: &AppHandle) -> Result<(), String> {
 pub fn save_task_file(app: AppHandle, file_name: String, data: Vec<u8>, directory: String) -> Result<(), String> {
     let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let save_in_dir = app_data_dir.join(&directory);
-    
-    println!("Saving in directory: {}", save_in_dir.display());
 
     let file_path = save_in_dir.join(file_name);
 
     fs::write(file_path, data).map_err(|e| e.to_string())?;
-    println!("Task file saved successfully.");
+
     Ok(())
 }
 
@@ -50,8 +48,6 @@ pub fn list_task_files(app: AppHandle, directory: String) -> Result<Vec<String>,
         .map(|e| e.file_name().to_string_lossy().to_string())
         .collect();
 
-    println!("Files in tasks directory: {:?}", entries);
-    println!("Listed task files successfully.");
     Ok(entries)
 }
 
@@ -64,7 +60,6 @@ pub fn delete_all_task_files(app: AppHandle, directory: String) -> Result<(), St
         fs::create_dir_all(&chosen_dir).map_err(|e| e.to_string())?;
     }
 
-    println!("All {} files deleted successfully.", &directory);
     Ok(())
 }
 

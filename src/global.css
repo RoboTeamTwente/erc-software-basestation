@@ -86,6 +86,7 @@
 .grid-nest {
     display: grid;
     overflow: hidden;
+    height: 100%;
     width: 100%;
 }
 

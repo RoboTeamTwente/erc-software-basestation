@@ -2,7 +2,7 @@
   import Double_Video from '$lib/components/double_video.svelte';
   import Map from '$lib/components/map.svelte';
   import NavigationPlan from '$lib/components/navigation_plan.svelte';
-
+  import TaskCompletion from '$lib/components/task_completion.svelte';
 
 </script>
 
@@ -36,9 +36,7 @@
     </div>
 
     <div class="grid-item">
-      <div class="container">
-        <h1 class="heading">Task Completion Overview</h1>
-      </div>
+      <TaskCompletion />
     </div>
 
   </div>

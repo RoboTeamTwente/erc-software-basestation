@@ -151,6 +151,7 @@
                 const data = encoder.encode(
                     JSON.stringify({
                         task_name: runningTask,
+                        task_number: prefix,
                         completion_time: elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`,
                         finished_at: new Date().toISOString(),
                     })
@@ -180,7 +181,7 @@
 
     function setTask() {
         if (elapsed > 0) return; // Don't change task if already running
-        runningTask = links.find(link => link.path === window.location.pathname)?.name || "Unknown Task";
+        runningTask = links.find(link => link.path === window.location.pathname)?.name || "None";
     }
 
     onDestroy(() => cancelAnimationFrame(rafId));
