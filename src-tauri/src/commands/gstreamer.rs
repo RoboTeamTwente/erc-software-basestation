@@ -132,7 +132,8 @@ pub async fn stream() -> Result<()> {
 
     // Two frame buffers for two cameras
     let frames1: FrameBuffer = Arc::new(Mutex::new(None));
-    //let frames2: FrameBuffer = Arc::new(Mutex::new(None));
+    let frames2: FrameBuffer = Arc::new(Mutex::new(None));
+    let frames3: FrameBuffer = Arc::new(Mutex::new(None));
 
     // Start HTTP servers for both streams
     {
@@ -141,15 +142,21 @@ pub async fn stream() -> Result<()> {
             start_http_server(frames1_clone, 5000).await;
         });
 
-        // let frames2_clone = frames2.clone();
-        // tauri::async_runtime::spawn(async move {
-        //     start_http_server(frames2_clone, 5001).await;
-        // });
+        let frames2_clone = frames2.clone();
+        tauri::async_runtime::spawn(async move {
+            start_http_server(frames2_clone, 5001).await;
+        });
+
+        let frames3_clone = frames3.clone();
+        tauri::async_runtime::spawn(async move {
+            start_http_server(frames3_clone, 5002).await;
+        });
     }
 
     // Start GStreamer pipelines
     start_pipeline(4500, frames1.clone())?;
-    //start_pipeline(4501, frames2.clone())?;
+    start_pipeline(4501, frames2.clone())?;
+    start_pipeline(4502, frames3.clone())?;
 
     // Keep alive
     loop {

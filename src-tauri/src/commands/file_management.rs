@@ -1,6 +1,7 @@
 use tauri::{AppHandle, Manager};
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
+use serde::Serialize;
 
 // Take a reference instead of moving
 pub fn ensure_storage_dirs_internal(app: &AppHandle) -> Result<(), String> {
@@ -82,26 +83,72 @@ pub fn read_task_file(app: AppHandle, file_name: String) -> Result<Vec<u8>, Stri
 }
 
 
-// Map file
+// Add map file to map folder
 #[tauri::command]
-pub fn import_map_file(app: AppHandle, source_path: String) -> Result<(), String> {
-    let app_data_dir = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+pub fn import_map_file(app: AppHandle, directory: String) -> Result<(), String> {
+    let chosen_file_dir = PathBuf::from(&directory);
+    let destination_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("maps");
 
-    let maps_dir = app_data_dir.join("maps");
+    // Make sure the file exists
+    if !chosen_file_dir.exists() {
+        return Err(format!("File does not exist: {}", directory));
+    }
 
-    let source = Path::new(&source_path);
+    // Create the "maps" folder if it doesn't exist
+    if !destination_dir.exists() {
+        fs::create_dir_all(&destination_dir).map_err(|e| e.to_string())?;
+    }
 
-    let file_name = source
+    // Build the destination file path (keep the original file name)
+    let file_name = chosen_file_dir
         .file_name()
         .ok_or("Invalid file name".to_string())?;
+    let destination_file = destination_dir.join(file_name);
 
-    let destination = maps_dir.join(file_name);
+    // Copy the file
+    fs::copy(&chosen_file_dir, &destination_file).map_err(|e| e.to_string())?;
 
-    fs::copy(source, destination).map_err(|e| e.to_string())?;
-
-    println!("Map file imported successfully.");
     Ok(())
+}
+
+//Get home directory
+#[tauri::command]
+pub fn get_app_dir(app: AppHandle) -> Result<String, String> {
+    let app_dir = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?;
+
+    Ok(app_dir.to_string_lossy().to_string())
+}
+
+#[derive(Serialize)]
+pub struct FileEntry {
+    pub name: String,
+    pub is_dir: bool,
+}
+
+
+#[tauri::command]
+pub fn browse_in(directory: String) -> Result<Vec<FileEntry>, String> {
+    let chosen_dir = PathBuf::from(&directory);
+
+    if !chosen_dir.exists() {
+        println!("Couldn't find directory {}", &directory);
+        return Ok(vec![]);
+    }
+
+    let entries = fs::read_dir(chosen_dir)
+        .map_err(|e| e.to_string())?
+        .filter_map(|e| e.ok())
+        .map(|entry| {
+            let path = entry.path();
+            FileEntry {
+                name: entry.file_name().to_string_lossy().to_string(),
+                is_dir: path.is_dir(),
+            }
+        })
+        .collect();
+
+    Ok(entries)
 }
