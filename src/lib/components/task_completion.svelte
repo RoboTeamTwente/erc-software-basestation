@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import '../../global.css';
     import { invoke } from "@tauri-apps/api/core";
+    import { confirm } from '@tauri-apps/plugin-dialog';
 
     type Task = {
         task_name: string;
@@ -9,6 +10,7 @@
         completion_time: string;
         finished_at: string;
         attached_content: string;
+        file_name: string;
     }
 
     let taskFiles = $state<string[]>([]);
@@ -37,10 +39,26 @@
                 const uint8Array = new Uint8Array(data);
                 const decoder = new TextDecoder("utf-8");
                 const content = decoder.decode(uint8Array);
+
                 tasks.push(JSON.parse(content));
             } catch (e) {
                 console.error(`Failed to read ${file}:`, e);
             }
+        }
+    }
+
+    async function deleteTask(task:Task) {
+        const confirmed = await confirm(
+        "Are you sure you want to delete this task?",
+        { title: "Delete", kind: "warning" }
+        );
+
+        if (confirmed) {
+            await invoke("delete_one_file", {
+                directory: "tasks",
+                fileName: task.file_name,
+            })
+            loadTasks();
         }
     }
 
@@ -60,21 +78,36 @@
 
 
 <div class="container">
-    <h1 class="heading">Task Completion Overview</h1>
+    <h1 class="heading">Task Completion Overview
+        <button class="reload-button" onclick={listFiles} title="Reload tasks">
+            ⟳
+        </button>
+    </h1>
 
     {#if tasks.length === 0}
         <p>No tasks found.</p>
     {:else}
         <div class="task-list">
             {#each tasks as task}
-                <button class="task-card" onclick={() => selectTask(task)}>
+                <div class="task-card" onclick={() => selectTask(task)} role="button" tabindex="0">
                     <div class="task-info">
                         <span><strong>{task.task_name}</strong></span>
                         <span>#{task.task_number}</span>
                         <span>Time: {task.completion_time}</span>
                         <span>Finished: {formatDate(task.finished_at)}</span>
+                        
+                        <button
+                            class="delete-button"
+                            onclick={(event) => {
+                                event.stopPropagation();
+                                deleteTask(task);
+                                }}
+                            title="Delete task"
+                        >
+                            <img class="right-icon" src="/delete.svg" alt="Delete" />
+                        </button>
                     </div>
-                </button>
+                </div>
             {/each}
         </div>
     {/if}
@@ -95,35 +128,44 @@
 <style>
     .task-list {
         max-height: 300px;
-        overflow-y: auto;        width: fit-content;
+        overflow-y: auto;
+        width: 100%;
         border-radius: 8px;
         padding: 0.5rem;
+        padding-right: 1rem;
+        box-sizing: border-box;
     }
 
     .task-card {
         background-color: #fff;
         padding: 0.5rem 1rem;
-        margin: 0.5rem;
-        font-size: 1rem;
-        border: none;
         margin: 0.4rem;
-        width: 95%;
+        width: 100%; /* fill container instead of 95% fixed */
+        max-width: 100%; /* prevent overflowing */
         border-radius: 12px;
         cursor: pointer;
-        height: fit-content;
+        box-sizing: border-box; /* include padding in width */
     }
 
     .task-card:hover {
-        background-color: #e6f0ff;
+        background-color: #eee6ff;  
     }
 
     .task-info {
         display: flex;
+        align-items: center; 
+        justify-content: space-between;
         gap: 1rem;
-        flex-wrap: nowrap;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        min-width: 0;
+    }
+
+    .delete-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        display: flex;
+        align-items: center;
     }
 
     /* Modal Styles */

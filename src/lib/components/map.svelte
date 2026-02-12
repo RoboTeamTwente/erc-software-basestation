@@ -63,10 +63,8 @@
 <div class="frame"   onmousemove={updateCoords} aria-hidden="true">
     <!-- Header -->
     <div class="header">
-        <h1 class="heading">MAP</h1>
-
         <!-- Reload button -->
-        <button class="icon-button" onclick={reload} title="Reload maps">
+        <button class="reload-button" onclick={reload} title="Reload maps">
             ⟳
         </button>
     </div>
@@ -112,20 +110,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-    }
-
-    .icon-button {
-        background: none;
-        border: none;
-        padding: 1rem;
-        font-size: 18px;
-        cursor: pointer;
-        opacity: 0.7;
-    }
-
-    .icon-button:hover {
-        opacity: 1;
-        transform: rotate(90deg);
     }
 
     .coords {

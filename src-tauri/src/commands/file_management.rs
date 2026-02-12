@@ -64,6 +64,23 @@ pub fn delete_all_task_files(app: AppHandle, directory: String) -> Result<(), St
 }
 
 #[tauri::command]
+pub fn delete_one_file(app: AppHandle, directory: String, file_name: String) -> Result<(), String> {
+    let chosen_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join(&directory);
+
+    let file_path = chosen_dir.join(file_name);
+
+    if file_path.exists(){
+        fs::remove_file(file_path).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
 pub fn read_task_file(app: AppHandle, file_name: String) -> Result<Vec<u8>, String> {
     let tasks_dir = app
         .path()

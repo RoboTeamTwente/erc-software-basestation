@@ -26,29 +26,34 @@
 </script>
 
 <div class="attached-container">
-    <div class="grid-nest" style="grid-template-rows: 1fr 10fr 2fr padding: 0">
+    <div class="grid-nest" style="grid-template-rows: auto 1fr auto; padding: 0;">
         <div class="grid-item" style="padding: 0;">
             <h1 class="heading">Navigation plan</h1>
         </div>
 
         <div class="grid-item">
-            <div class="grid-nest" style="grid-template-rows: repeat(6, 1fr)">
-                <div class="start">
+            <div class="route-list">
+                <div class="route-item start">
                     Starting Point
                 </div>
-                <div class="waypoint">
+
+                <div class="route-item waypoint">
                     Waypoint 1
                 </div>
-                <div class="waypoint">
+
+                <div class="route-item waypoint">
                     Waypoint 2
                 </div>
-                <div class="waypoint">
+
+                <div class="route-item waypoint">
                     Waypoint 3
                 </div>
-                <div class="waypoint">
+
+                <div class="route-item waypoint">
                     Waypoint 4
                 </div>
-                <div class="start">
+
+                <div class="route-item end">
                     End Point
                 </div>
             </div>
@@ -61,6 +66,9 @@
             <button class="button">
                 Plan Route
             </button>
+            <button class="button">
+                ▶︎ Go to Next Location
+            </button>
         </div>
     </div>
 </div>
@@ -68,31 +76,42 @@
 
 
 <style>
-    .start {
-        background-color: white;
-        border-radius: 16px;
+    /* Route list container */
+    .route-list {
         display: flex;
-        padding-bottom: 0.4rem;
-        padding-top: 0.4rem;
-        padding-left: 0.8rem;
-        margin: 0.25rem;
-        font-size: 1rem;
-        font-weight: bold;
-        height: fit-content;
-        overflow: hidden;
+        flex-direction: column;
+        gap: 0.5rem;            /* clean even spacing */
+        padding: 0.5rem 1rem;
+        width: 100%;
+        box-sizing: border-box;
+
+        overflow-y: auto;   /* makes it scroll */
+        min-height: 0;   
     }
 
-    .waypoint {
+    /* Base style for all route items */
+    .route-item {
         background-color: white;
         border-radius: 16px;
-        display: flex;
-        padding-bottom: 0.2rem;
-        padding-top: 0.2rem;
-        padding-left: 0.8rem;
-        margin: 0.25rem;
+        padding: 0.6rem 1rem;
         font-size: 1rem;
-        width: 80%;
-        height: fit-content;
-        overflow: hidden;
+        display: flex;
+        align-items: center;
+        width: 100%;            /* ensures perfect alignment */
+        box-sizing: border-box;
     }
+
+    /* Start & End slightly stronger */
+    .start,
+    .end {
+        font-weight: 600;
+        border: 2px solid var(--color-rtpurple);
+    }
+
+    /* Waypoints slightly inset look */
+    .waypoint {
+        background-color: #fff;
+        height: 2rem;
+    }
+
 </style>

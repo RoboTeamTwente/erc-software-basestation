@@ -3,6 +3,7 @@
     import { goto } from '$app/navigation';
     import { invoke } from '@tauri-apps/api/core';
     import {onDestroy } from "svelte";
+    import { confirm } from '@tauri-apps/plugin-dialog';
 
     let { children } = $props();
 
@@ -138,7 +139,12 @@
     async function reset() {
         if (elapsed!=0) {
             stop();
-            if (confirm("Are you sure you want to end the current task?")) {
+
+            const confirmed = await confirm(
+            "Are you sure you want to end the current task?",
+            { title: "End Task", kind: "warning" }
+            );
+            if (confirmed) {
                 cancelAnimationFrame(rafId);
 
                 await listTaskFiles();
@@ -154,6 +160,8 @@
                         task_number: prefix,
                         completion_time: elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`,
                         finished_at: new Date().toISOString(),
+                        file_name: fileName,
+                        attached_content: "",
                     })
                 );
 
@@ -167,6 +175,7 @@
                 runningTask = "None";
             } else {
                 start(); // Resume if not confirmed
+                console.log("Said no");
             }
         } else {
             return;
@@ -209,7 +218,6 @@
             {controlMode} ▼ 
         </button>
         <div class="dropdown-content">
-            <!-- TODO: Implement manual mode navigation -->
             <a href="#" onclick={() => { manualMode = true ; toggleControlMode()}}>
                 Manual
             </a>

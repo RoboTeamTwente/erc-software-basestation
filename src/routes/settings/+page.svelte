@@ -48,6 +48,10 @@
     await invoke("save_snapshot", {port:"5000"});
   }
 
+  async function clearCache(){
+    await invoke("clear_cache");
+  }
+
 </script>
 
 <div>
@@ -55,16 +59,12 @@
     Ping Rust
   </button>
 
-  <button class="button" style="margin: 10px;" onclick={() => listFiles("tasks")}>
-    List task files
+  <button class="button" style="margin: 10px;" onclick={clearCache}>
+    Clear cache
   </button>
 
   <button class="button" style="margin: 10px;" onclick={() => listFiles("images")}>
     List image files
-  </button>
-
-  <button class="button" style="margin: 10px;" onclick={() => listFiles("maps")}>
-    List map files
   </button>
 
   <button class="button" style="margin: 10px;" onclick={() => saveSnapshot()}>
