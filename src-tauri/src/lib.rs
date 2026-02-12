@@ -31,6 +31,9 @@ pub fn run() {
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
                 eprintln!("Failed to ensure storage dirs: {}", e);
             }
+            if let Err(e) = commands::checks::clear_cache_on_startup() {
+                eprintln!("Failed to clear cache on startup: {}", e);
+            }
             // Spawn gstream receiver
             tauri::async_runtime::spawn(async {
                 // Import your streaming module

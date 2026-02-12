@@ -261,6 +261,7 @@ dependencies = [
  "async-stream",
  "bytes",
  "chrono",
+ "dirs",
  "futures-util",
  "gstreamer",
  "gstreamer-app",
