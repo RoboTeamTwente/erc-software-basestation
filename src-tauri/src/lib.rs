@@ -26,6 +26,7 @@ pub fn run() {
             commands::checks::clear_cache,
             commands::maps::selected_map_to_backend,
             commands::maps::selected_map_from_backend,
+            commands::controller::pressed_key,
         ])
         .setup(|app| {
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {

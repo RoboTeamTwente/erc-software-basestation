@@ -148,7 +148,7 @@
     }
 
     .task-card:hover {
-        background-color: #eee6ff;  
+        background-color: #eee6ff;
     }
 
     .task-info {

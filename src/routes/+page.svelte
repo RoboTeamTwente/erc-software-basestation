@@ -13,7 +13,7 @@
   </div>
 
 
-  <div class="grid-nest" style="grid-template-columns: 1fr 2fr; grid-template-rows: 2fr 3fr;">
+  <div class="grid-nest" style="grid-template-columns: 1fr 2fr; grid-template-rows: 1fr 2fr;">
 
     <div class="grid-item" style="padding-left: 0">
       <div class="attached-container">

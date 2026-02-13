@@ -183,6 +183,13 @@
     cursor: pointer;
 }
 
+.right-icon:hover{
+    background: #fff;
+    border-radius: 40px;
+    border: 1px solid #5A1C74;
+    padding: 2px;
+}
+
 .reload-button {
     background: none;
     border: none;

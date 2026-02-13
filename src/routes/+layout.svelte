@@ -2,7 +2,7 @@
     import '../global.css';
     import { goto } from '$app/navigation';
     import { invoke } from '@tauri-apps/api/core';
-    import {onDestroy } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import { confirm } from '@tauri-apps/plugin-dialog';
 
     let { children } = $props();
@@ -25,6 +25,8 @@
     //Keep track of mode
     let manualMode = $state(true);
     let controlMode = $state("Manual")
+
+    let pressed = new Set();
 
     // Toggle the first dropdown (Task menu)
     function toggleDropdown() {
@@ -175,7 +177,6 @@
                 runningTask = "None";
             } else {
                 start(); // Resume if not confirmed
-                console.log("Said no");
             }
         } else {
             return;
@@ -193,7 +194,41 @@
         runningTask = links.find(link => link.path === window.location.pathname)?.name || "None";
     }
 
-    onDestroy(() => cancelAnimationFrame(rafId));
+	onMount(() => {
+		window.addEventListener("keydown", handleKeyDown);
+		window.addEventListener("keyup", handleKeyUp);
+	});
+
+    onDestroy(() => {
+        cancelAnimationFrame(rafId);
+		window.removeEventListener("keydown", handleKeyDown);
+		window.removeEventListener("keyup", handleKeyUp);
+    });
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+			e.preventDefault(); // stop scrolling
+			pressed.add(e.code);
+			sendCommand();
+		}
+    }
+
+	function handleKeyUp(e: KeyboardEvent) {
+		pressed.delete(e.code);
+		sendCommand();
+	}
+
+	async function sendCommand() {
+		// Example movement logic
+		const command = {
+			up: pressed.has("ArrowUp"),
+			down: pressed.has("ArrowDown"),
+			left: pressed.has("ArrowLeft"),
+			right: pressed.has("ArrowRight")
+		};
+        await invoke("pressed_key", {command});
+	}
+
 </script>
 
 <!-- Navigation bar with dropdowns and control buttons -->
@@ -291,6 +326,10 @@
         border: none;
         border-radius: 12px;
         cursor: pointer;
+    }
+
+    .dropdown-button:hover{
+        background-color: #401453;
     }
 
     /* Dropdown content container (hidden by default) */
