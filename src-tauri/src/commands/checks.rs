@@ -59,7 +59,7 @@ pub fn clear_cache_on_startup() -> Result<(), String> {
     };
 
     // Append your app-specific folder
-    let app_cache_dir = cache_dir.join("my_app_name"); 
+    let app_cache_dir = cache_dir.join("base_station"); 
 
     println!("Cache directory: {:?}", &app_cache_dir);
 
