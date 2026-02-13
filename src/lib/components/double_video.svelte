@@ -1,12 +1,18 @@
 <script lang="ts">
+// ----- STYLES -----
     import '../../global.css';
 
     let { port1, port2 } = $props();
 
+
+// ----- STATES -----
     let videoUrl1 = "http://localhost:" + port1;
     let videoUrl2 = "http://localhost:" + port2;
 
     let toggle = $state(true)
+
+
+// ----- UTILITIES -----
     async function toggleVideo(){
         toggle = !toggle;
     }

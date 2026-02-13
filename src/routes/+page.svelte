@@ -1,4 +1,5 @@
 <script lang="ts">
+// ----- COMPONENTS -----
   import Double_Video from '$lib/components/double_video.svelte';
   import Map from '$lib/components/map.svelte';
   import NavigationPlan from '$lib/components/navigation_plan.svelte';

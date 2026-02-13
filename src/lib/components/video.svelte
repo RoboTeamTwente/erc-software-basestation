@@ -1,8 +1,10 @@
 <script lang="ts">
+// ----- STYLES -----
     import '../../global.css';
 
     export let port: string; // <-- prop from parent
 
+// ----- STATES -----
     let videoUrl = "http://localhost:" + port;
 </script>
 

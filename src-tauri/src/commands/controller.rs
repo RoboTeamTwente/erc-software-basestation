@@ -13,14 +13,5 @@ pub struct MovementCommand {
 pub async fn pressed_key(command: MovementCommand) -> Result<(), String> {
     println!("Received command: {:?}", command);
 
-    // TODO:
-    // Send this to:
-    // - Serial
-    // - TCP socket
-    // - BLE
-    // - CAN bus
-    // - GPIO
-    // Whatever your robot uses
-
     Ok(())
 }

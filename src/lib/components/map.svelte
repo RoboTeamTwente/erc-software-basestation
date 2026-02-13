@@ -1,8 +1,15 @@
 <script lang="ts">
-    import '../../global.css';
+// ----- TAURI / EXTERNAL -----
     import { invoke } from "@tauri-apps/api/core";
+
+// ----- SVELTE -----
     import { onMount } from 'svelte';
 
+// ----- STYLES -----
+    import '../../global.css';
+
+
+// ----- STATES -----
     let mapFiles = $state<string[]>([]);
     let mapCount = $state(0);
     let selectedMap = $state<string | null>(null);
@@ -11,10 +18,10 @@
     let mouseX = $state(0);
     let mouseY = $state(0);
 
-	onMount(() => {
-		loadMap();
-	});
 
+// ===============================
+// MAP MANAGEMENT
+// ===============================
     async function loadMap() {
         openedMap = await invoke("selected_map_from_backend");
         if (openedMap == ""){
@@ -53,10 +60,22 @@
         await invoke("selected_map_to_backend", {fileName: openedMap});
     }
 
+
+// ===============================
+// COORDINATES
+// ===============================
     function updateCoords(e: MouseEvent) {
         mouseX = e.clientX;
         mouseY = e.clientY;
     }
+
+    
+// ===============================
+// LIFECYCLE
+// ===============================
+	onMount(() => {
+		loadMap();
+	});
 </script>
 
 

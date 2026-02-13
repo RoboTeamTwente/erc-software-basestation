@@ -1,10 +1,15 @@
 <script lang="ts">
+// ----- TAURI / EXTERNAL -----
     import { invoke } from "@tauri-apps/api/core";
     import { open } from "@tauri-apps/plugin-dialog";
+
+// ----- STYLES -----
     import '../../global.css';
 
     let { style } = $props();
 
+
+// ----- FILE MANAGEMENT -----
     async function import_file() {
         const selected = await open({
             multiple: false,

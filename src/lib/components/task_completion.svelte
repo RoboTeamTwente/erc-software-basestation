@@ -1,9 +1,16 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import '../../global.css';
+// ----- TAURI / EXTERNAL -----
     import { invoke } from "@tauri-apps/api/core";
     import { confirm } from '@tauri-apps/plugin-dialog';
 
+// ----- SVELTE -----
+    import { onMount } from 'svelte';
+
+// ----- STYLES -----
+    import '../../global.css';
+
+
+// ----- TYPES -----
     type Task = {
         task_name: string;
         task_number: string;
@@ -13,14 +20,23 @@
         file_name: string;
     }
 
+
+// ----- STATE -----
     let taskFiles = $state<string[]>([]);
     let tasks = $state<Task[]>([]);
     let selectedTask = $state<Task | null>(null);
 
-	onMount(() => {
-		listFiles();
-	});
 
+// ----- UTILITIES -----
+    function formatDate(dateStr: string) {
+        const date = new Date(dateStr);
+        return date.toLocaleString();
+    }
+
+
+// ===============================
+// TASK FILE MANAGEMENT
+// ===============================
     async function listFiles() {
         const result = await invoke<string[]>("list_task_files", { directory: "tasks" });
         if (result.length > 0) {
@@ -62,6 +78,11 @@
         }
     }
 
+
+
+// ===============================
+// POPUP
+// ===============================
     function selectTask(task: Task) {
         selectedTask = task;
     }
@@ -70,10 +91,14 @@
         selectedTask = null;
     }
 
-    function formatDate(dateStr: string) {
-        const date = new Date(dateStr);
-        return date.toLocaleString();
-    }
+
+
+// ===============================
+// LIFECYCLE
+// ===============================
+	onMount(() => {
+		listFiles();
+	});
 </script>
 
 

@@ -1,13 +1,20 @@
 <script lang="ts">
-    import '../global.css';
+// ----- EXTERNAL / TAURI -----
     import { goto } from '$app/navigation';
     import { invoke } from '@tauri-apps/api/core';
-    import { onMount, onDestroy } from "svelte";
     import { confirm } from '@tauri-apps/plugin-dialog';
+
+// ----- SVELTE -----
+    import { onMount, onDestroy } from "svelte";
+
+
+// ----- STYLES -----
+    import '../global.css';
+
 
     let { children } = $props();
 
-    // Navigation links for the Task dropdown menu
+// ----- NAVIGATION CONFIG -----
     const links = [
         { name: "Science", path: "/science" },
         { name: "Navigation", path: "/navigation" },
@@ -15,29 +22,66 @@
         { name: "Probing", path: "/probing" }
     ];
     
-    // State for dropdown menu visibility
+
+// ----- UI STATE -----
     let dropdownOpen = $state(false);
     let dropdownOpen2 = $state(false);
-
-    // Keep track of current page
     let currentPage = $state("Task");
 
-    //Keep track of mode
+
+// ----- ROVER MODES -----
     let manualMode = $state(true);
     let controlMode = $state("Manual")
 
+
+// ----- INPUT STATE -----
     let pressed = new Set();
 
-    // Toggle the first dropdown (Task menu)
+
+// ----- DROPDOWN LOGIC -----
     function toggleDropdown() {
         dropdownOpen = !dropdownOpen;
     }
-
-    // Toggle the second dropdown (Control Mode menu)
     function toggleDropdown2() {
         dropdownOpen2 = !dropdownOpen2;
     }
 
+    function handleClickOutside(event: MouseEvent) {
+        if (!dropdownEl.contains(event.target as Node)) {
+            dropdownOpen = false;
+        }
+    }
+    function handleClickOutside2(event: MouseEvent) {
+        if (!dropdownEl2.contains(event.target as Node)) {
+            dropdownOpen2 = false;
+        }
+    }
+
+    let dropdownEl: HTMLDivElement;
+    let dropdownEl2: HTMLDivElement;
+
+    $effect(() => {
+        if (dropdownOpen) {
+            document.addEventListener('click', handleClickOutside);
+        } else {
+            document.removeEventListener('click', handleClickOutside);
+        }
+    });
+    $effect(() => {
+        if (dropdownOpen2) {
+            document.addEventListener('click', handleClickOutside2);
+        } else {
+            document.removeEventListener('click', handleClickOutside2);
+        }
+    });
+
+
+// ----- NAVIGATION AND ROVER MODES -----
+    function navigateTo(path: string) {
+        goto(path);
+        currentPage = links.find(link => link.path === path)?.name || "Task";
+        dropdownOpen = false;
+    }
     function toggleControlMode(){
         dropdownOpen2 = false;
         if (manualMode){
@@ -47,50 +91,10 @@
         }
     }
 
-    // Navigate to a path and close the dropdown
-    function navigateTo(path: string) {
-        goto(path);
-        currentPage = links.find(link => link.path === path)?.name || "Task";
-        dropdownOpen = false;
-    }
 
-    // Close dropdown if click happens outside the first dropdown
-    function handleClickOutside(event: MouseEvent) {
-        if (!dropdownEl.contains(event.target as Node)) {
-            dropdownOpen = false;
-        }
-    }
-
-    // Close dropdown if click happens outside the second dropdown
-    function handleClickOutside2(event: MouseEvent) {
-        if (!dropdownEl2.contains(event.target as Node)) {
-            dropdownOpen2 = false;
-        }
-    }
-
-    // References to dropdown DOM elements
-    let dropdownEl: HTMLDivElement;
-    let dropdownEl2: HTMLDivElement;
-
-    // Add/remove click event listener based on first dropdown state
-    $effect(() => {
-        if (dropdownOpen) {
-            document.addEventListener('click', handleClickOutside);
-        } else {
-            document.removeEventListener('click', handleClickOutside);
-        }
-    });
-
-    // Add/remove click event listener based on second dropdown state
-    $effect(() => {
-        if (dropdownOpen2) {
-            document.addEventListener('click', handleClickOutside2);
-        } else {
-            document.removeEventListener('click', handleClickOutside2);
-        }
-    });
-
-    // ----- TASK FILE MANAGEMENT LOGIC ------
+// ===============================
+// TASK FILE MANAGEMENT
+// ===============================
     let taskFiles: string[] = [];
 
     async function listTaskFiles() {
@@ -120,7 +124,10 @@
         return nextNumber.toString().padStart(4, "0");
     }
 
-    // ----- TIMER LOGIC ------
+
+// ===============================
+// TIMER LOGIC
+// ===============================
     let startTime = 0;
     let elapsed = $state(0);
     let running = $state(false);
@@ -133,14 +140,20 @@
         loop();
     }
 
-    function stop() {
+    function pause() {
         running = false;
         cancelAnimationFrame(rafId);
     }
 
+    function loop() {
+        if (!running) return;
+        elapsed = performance.now() - startTime;
+        rafId = requestAnimationFrame(loop);
+    }
+
     async function reset() {
         if (elapsed!=0) {
-            stop();
+            pause();
 
             const confirmed = await confirm(
             "Are you sure you want to end the current task?",
@@ -183,28 +196,15 @@
         }
     }
 
-    function loop() {
-        if (!running) return;
-        elapsed = performance.now() - startTime;
-        rafId = requestAnimationFrame(loop);
-    }
-
     function setTask() {
         if (elapsed > 0) return; // Don't change task if already running
         runningTask = links.find(link => link.path === window.location.pathname)?.name || "None";
     }
 
-	onMount(() => {
-		window.addEventListener("keydown", handleKeyDown);
-		window.addEventListener("keyup", handleKeyUp);
-	});
 
-    onDestroy(() => {
-        cancelAnimationFrame(rafId);
-		window.removeEventListener("keydown", handleKeyDown);
-		window.removeEventListener("keyup", handleKeyUp);
-    });
-
+// ===============================
+// KEYBOARD INPUT
+// ===============================
 	function handleKeyDown(e: KeyboardEvent) {
 		if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
 			e.preventDefault(); // stop scrolling
@@ -228,6 +228,21 @@
 		};
         await invoke("pressed_key", {command});
 	}
+
+
+// ===============================
+// LIFECYCLE
+// ===============================
+	onMount(() => {
+		window.addEventListener("keydown", handleKeyDown);
+		window.addEventListener("keyup", handleKeyUp);
+	});
+
+    onDestroy(() => {
+        cancelAnimationFrame(rafId);
+		window.removeEventListener("keydown", handleKeyDown);
+		window.removeEventListener("keyup", handleKeyUp);
+    });
 
 </script>
 
@@ -264,7 +279,7 @@
 
     <!-- Start Task button -->
     <div>
-        <button class="button" onclick={() => {running ? stop() : start(); setTask()}}>
+        <button class="button" onclick={() => {running ? pause() : start(); setTask()}}>
             {running ? `❚❚ Pause ${runningTask}` : (elapsed > 0 ? `▶︎ Resume ${runningTask}` : '▶︎ Start Task')}
             <span style="margin-left: 0.5rem;">
                 {elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`}

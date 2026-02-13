@@ -1,5 +1,8 @@
 <script lang="ts">
+// ----- STYLES -----
   import "../../global.css"
+
+// ----- COMPONENTS -----
   import Video from '$lib/components/video.svelte';
   import Map from '$lib/components/map.svelte';
 </script>

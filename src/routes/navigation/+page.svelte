@@ -1,5 +1,8 @@
 <script>
+// ----- STYLES -----
   import "../../global.css"
+
+// ----- COMPONENTS -----
   import Video from '$lib/components/video.svelte';
   import Map from '$lib/components/map.svelte';
   import NavigationPlan from '$lib/components/navigation_plan.svelte';
