@@ -10,6 +10,8 @@
 
 // ----- STYLES -----
     import '../global.css';
+    import '../navbar.css';
+    import '../components.css';
 
 
     let { children } = $props();
@@ -292,14 +294,14 @@
         <!-- Settings icon link -->
         <div class="icon-link">
             <a href="/settings" onclick ={() => navigateTo('/settings')}>
-                <img src="/settings.svg" alt="Settings" class="icon"/>
+                <img src="/settings.svg" alt="Settings" class="nav-icon"/>
             </a>
         </div>
 
         <!-- Home icon link -->
         <div class="icon-link">
             <a href="/" onclick ={() => navigateTo('/')}>
-                <img src="/home.svg" alt="Home" class="icon"/>
+                <img src="/home.svg" alt="Home" class="nav-icon"/>
             </a>
         </div>
 
@@ -314,85 +316,7 @@
 
 
 <style>
-    /* Main navigation bar container */
-    .navbar {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        background: #D9D9D9;
-        padding: 0.75rem 1.5rem;
-        color: white;
-        gap: 1rem;
-        column-gap: 2%;
-    }
-
-    /* Dropdown wrapper for positioning */
-    .dropdown {
-        position: relative;
-        display: inline-block;
-    }
-
-    /* Dropdown button styling */
-    .dropdown-button {
-        background-color: #5A1C74;
-        color: white;
-        padding: 0.5rem 1rem;
-        font-size: 1rem;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-    }
-
-    .dropdown-button:hover{
-        background-color: #401453;
-    }
-
-    /* Dropdown content container (hidden by default) */
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #f9f9f9;
-        min-width: 160px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 2;
-    }
-
-    /* Dropdown menu item styling */
-    .dropdown-content a {
-        color: black;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-    }
-
-    /* Dropdown menu item hover effect */
-    .dropdown-content a:hover {
-        background-color: #f1f1f1;
-        z-index: 2;
-    }
-
-    /* Show dropdown content when dropdown has 'show' class */
-    .dropdown.show .dropdown-content {
-        display: block;
-    }
-
-    /* Right aligned icons */
-    .right-icons {
-        margin-left: auto;
-        display: flex;
-        gap: 2rem;
-        align-items: center;
-    }
-
-    /* Icon link container */
-    .icon-link {
-        margin-left: 5;
-    }
-
-    /* Icon image sizing */
-    .icon {
-        height: 36px;
-    }
+ 
 
 </style>
 

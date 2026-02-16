@@ -1,0 +1,82 @@
+/* =========================================================
+   NAVBAR
+========================================================= */
+
+/* Main navigation bar */
+.navbar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    background: var(--color-light-gray);
+    padding: 0.75rem 1.5rem;
+    color: var(--color-white);
+    gap: 1rem;
+    column-gap: 2%;
+}
+
+/* Right-aligned navbar section */
+.right-icons {
+    margin-left: auto;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+/* Navbar icon link wrapper */
+.icon-link {
+    margin-left: 5;
+}
+
+/* Navbar icon sizing */
+.nav-icon {
+    height: 36px;
+}
+
+/* Dropdown wrapper */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdown button */
+.dropdown-button {
+    background-color: var(--color-rtpurple);
+    color: var(--color-white);
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.dropdown-button:hover{
+    background-color: var(--color-rtpurple-dark);
+}
+
+/* Dropdown content (hidden by default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: var(--color-white);
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+
+/* Dropdown links */
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: var(--color-hover-gray);
+    z-index: 2;
+}
+
+/* Show dropdown when active */
+.dropdown.show .dropdown-content {
+    display: block;
+}

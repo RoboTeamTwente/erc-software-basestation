@@ -100,7 +100,7 @@
                     {#each mapFiles as file}
                         <div class="file-row">
                             <button class="file-item {selectedMap === file ? 'selected': ''}" onclick={() => selectMap(file)}>
-                                <span class="icon">🗺️</span>
+                                <span class="map-icon">🗺️</span>
                                 <span class="name">{file}</span>
                             </button>
                         </div>

@@ -1,7 +1,5 @@
 <script lang="ts">
 // ----- STYLES -----
-    import '../../global.css';
-
     let { port1, port2 } = $props();
 
 

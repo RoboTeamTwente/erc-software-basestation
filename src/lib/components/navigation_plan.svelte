@@ -31,35 +31,47 @@
 </script>
 
 <div class="attached-container">
-    <div class="grid-nest" style="grid-template-rows: auto 1fr auto; padding: 0;">
-        <div class="grid-item" style="padding: 0;">
-            <h1 class="heading">Navigation plan</h1>
+    <div class="grid-nest" style="grid-template-rows: auto 1fr auto">
+        <div class="grid-item" >
+            <h1 class="heading" style="padding-bottom: 0">Navigation plan</h1>
         </div>
 
         <div class="grid-item">
-            <div class="route-list">
-                <div class="route-item start">
-                    Starting Point
+            <div class="task-list">
+                <div class="task-card start">
+                    <div class="task-info">
+                        <span>Starting Point </span>
+                    </div>
                 </div>
 
-                <div class="route-item waypoint">
-                    Waypoint 1
+                <div class="task-card waypoint">
+                    <div class="task-info">
+                        <span>Waypoint 1</span>
+                    </div>
                 </div>
 
-                <div class="route-item waypoint">
-                    Waypoint 2
+                <div class="task-card waypoint">
+                    <div class="task-info">
+                        <span>Waypoint 2</span>
+                    </div>
                 </div>
 
-                <div class="route-item waypoint">
-                    Waypoint 3
+                <div class="task-card waypoint">
+                    <div class="task-info">
+                        <span>Waypoint 3</span>
+                    </div>
                 </div>
 
-                <div class="route-item waypoint">
-                    Waypoint 4
+                <div class="task-card waypoint">
+                    <div class="task-info">
+                        <span>Waypoint 4</span>
+                    </div>
                 </div>
 
-                <div class="route-item end">
-                    End Point
+                <div class="task-card end">
+                    <div class="task-info">
+                        <span>End point</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -77,46 +89,3 @@
         </div>
     </div>
 </div>
-
-
-
-<style>
-    /* Route list container */
-    .route-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;            /* clean even spacing */
-        padding: 0.5rem 1rem;
-        width: 100%;
-        box-sizing: border-box;
-
-        overflow-y: auto;   /* makes it scroll */
-        min-height: 0;   
-    }
-
-    /* Base style for all route items */
-    .route-item {
-        background-color: white;
-        border-radius: 16px;
-        padding: 0.6rem 1rem;
-        font-size: 1rem;
-        display: flex;
-        align-items: center;
-        width: 100%;            /* ensures perfect alignment */
-        box-sizing: border-box;
-    }
-
-    /* Start & End slightly stronger */
-    .start,
-    .end {
-        font-weight: 600;
-        border: 2px solid var(--color-rtpurple);
-    }
-
-    /* Waypoints slightly inset look */
-    .waypoint {
-        background-color: #fff;
-        height: 2rem;
-    }
-
-</style>
