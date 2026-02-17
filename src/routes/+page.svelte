@@ -1,15 +1,58 @@
 <script lang="ts">
+// ----- EXTERNAL / TAURI -----
+    import { invoke } from '@tauri-apps/api/core';
+
+// ----- SVELTE -----
+    import { onMount } from "svelte";
+
+// ----- IMPORTS ------
+    import { depthCamera, frontCamera, armCamera } from '../state.svelte';
+
 // ----- COMPONENTS -----
     import Double_Video from '$lib/components/double_video.svelte';
     import Map from '$lib/components/map.svelte';
     import NavigationPlan from '$lib/components/navigation_plan.svelte';
     import TaskCompletion from '$lib/components/task_completion.svelte';
+
+
+// ----- STATES -----
+    let pickupMode = $state(false);
+    let cam1 = $state(depthCamera);
+    let cam2 = frontCamera;
+
+
+// ----- ROVER MODES LOGIC -----
+    async function togglePickup() {
+        pickupMode = !pickupMode;
+        setCameras();
+        await invoke("pickup_mode_to_backend", {pickupMode});
+    }
+    async function getPickupMode() {
+        pickupMode = await invoke("pickup_mode_from_backend");
+    }
+    function setCameras(){
+        if (pickupMode){
+            cam1 = armCamera;
+        } else {
+            cam1 = depthCamera;
+        }
+    }
+
+
+// ===============================
+// LIFECYCLE
+// ===============================
+    onMount(async () => {
+        await getPickupMode();
+        setCameras();
+    });
+
 </script>
 
 <div class="grid">
 
     <div class="grid-item" style="padding-right: 0">
-        <Double_Video port1={"5000"} port2={"5001"} />
+        <Double_Video camera1={cam1} camera2={cam2} />
     </div>
 
 
@@ -17,9 +60,13 @@
 
         <div class="grid-item" style="padding-left: 0">
         <div class="attached-container">
-            <div class="button" style="margin: 10px">
-            Go to Pick-up Mode
-            </div>
+            <button class="button" style="margin: 10px" onclick={togglePickup}>
+                {#if pickupMode}
+                    Go to Drive Mode
+                {:else}
+                    Go to Pick-up Mode
+                {/if}
+            </button>
         </div>
         </div>
 

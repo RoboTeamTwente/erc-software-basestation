@@ -7,7 +7,6 @@
 // ----- SVELTE -----
     import { onMount, onDestroy } from "svelte";
 
-
 // ----- STYLES -----
     import '../global.css';
     import '../navbar.css';
@@ -84,13 +83,14 @@
         currentPage = links.find(link => link.path === path)?.name || "Task";
         dropdownOpen = false;
     }
-    function toggleControlMode(){
+    async function toggleControlMode(){
         dropdownOpen2 = false;
         if (manualMode){
             controlMode = "Manual";
         } else {
             controlMode = "Automatic"
         }
+        await invoke("control_mode_to_backend", {manualMode});
     }
 
 

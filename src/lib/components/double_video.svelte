@@ -1,55 +1,38 @@
 <script lang="ts">
 // ----- STYLES -----
-    let { port1, port2 } = $props();
+    let { camera1, camera2 } = $props();
 
 
 // ----- STATES -----
-    let videoUrl1 = "http://localhost:" + port1;
-    let videoUrl2 = "http://localhost:" + port2;
+    let activeCam = $state(camera1);
+    let secondaryCam = $state(camera2);
 
-    let toggle = $state(true)
+    // React when parent props change
+    $effect(() => {
+        activeCam = camera1;
+    });
+
+    $effect(() => {
+        secondaryCam = camera2;
+    });
 
 
-// ----- UTILITIES -----
+// ------ CAMERA LOGIC -----
     async function toggleVideo(){
-        toggle = !toggle;
+        let temp = activeCam;
+        activeCam = secondaryCam
+        secondaryCam = temp;
     }
 
 </script>
 
 <div class="frame">
-    {#if toggle}
-        <h1 class="heading">POLE VIDEO</h1>
-        <img
-        src={videoUrl1}
-        class="video-img"
-        alt="Video feed from port {port1}"
-        />
-    {/if}
-    {#if !toggle}
-        <h1 class="heading"> FRONT VIDEO </h1>
-        <img
-        src={videoUrl2}
-        class="video-img"
-        alt="Video feed from port {port2}"
-        />
-    {/if}
+
+    <h1 class="heading">{activeCam.name}</h1>
+    <img src={activeCam.port} class="video-img" alt="Video feed from port {activeCam.name}"/>
+
     <button class="frame" style="height: 30%; width: 25%; align-self: flex-end; margin: 10px; position: absolute; bottom: 0; cursor: pointer" onclick={() => toggleVideo()}>
-        {#if toggle}
-            <h1 class="heading"> POLE VIDEO </h1>
-            <img
-            src={videoUrl2}
-            class="video-img"
-            alt="Video feed from port {port2}"
-            />
-        {/if}
-        {#if !toggle}
-            <h1 class="heading">FRONT VIDEO</h1>
-            <img
-            src={videoUrl1}
-            class="video-img"
-            alt="Video feed from port {port1}"
-            />
-        {/if}
+        <h1 class="heading"> {secondaryCam.name} </h1>
+        <img src={secondaryCam.port} class="video-img" alt="Video feed from port {secondaryCam.name}"/>
     </button>
 </div>

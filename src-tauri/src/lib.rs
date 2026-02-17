@@ -3,12 +3,20 @@ mod commands;
 
 use std::sync::Mutex;
 use commands::maps::MapState;
+use commands::controller::ControlModeState;
+use commands::controller::PickupMode;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(MapState {
             displayed_map_name: Mutex::new(String::new()),
+        })
+        .manage(ControlModeState {
+            manual_mode: Mutex::new(true),
+        })
+        .manage(PickupMode {
+            pickup_mode: Mutex::new(false),
         })
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
@@ -27,6 +35,10 @@ pub fn run() {
             commands::maps::selected_map_to_backend,
             commands::maps::selected_map_from_backend,
             commands::controller::pressed_key,
+            commands::controller::control_mode_to_backend,
+            commands::controller::control_mode_from_backend,
+            commands::controller::pickup_mode_to_backend,
+            commands::controller::pickup_mode_from_backend,
         ])
         .setup(|app| {
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
