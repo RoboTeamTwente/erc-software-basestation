@@ -146,6 +146,39 @@
     box-sizing: border-box;
 }
 
+/* Editable text */
+.editable-text {
+    position: relative;
+    z-index: 1;           /* Above absolute elements */
+    font-size: x-large;
+    font-weight: bold;
+    margin: 0;
+    width: 100%;
+    color: black;      
+    box-sizing: border-box;   
+    border: none;
+    background: transparent;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Optional: subtle hover effect */
+.editable-text:hover {
+    background: var(--color-purple-light);
+    border-radius: 4px;
+}
+
+/* When focused, show subtle underline */
+.editable-text:focus {
+    cursor: text;
+    border-bottom: 2px solid var(--color-purple-selected);
+}
+
+.editable-text::placeholder {
+    color: var(--color-purple-selected);
+}
+
+
 
 /* =========================================================
    BUTTONS
@@ -233,11 +266,44 @@
     box-sizing: border-box;
 }
 
-.right-icon:hover{
+.right-icon:hover {
     background: var(--color-white);
     border-radius: 40px;
     border: 1px solid var(--color-rtpurple);
     padding: 2px;
 }
 
+/* Checkbox */
+.custom-checkbox {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.8rem; /* scales with surrounding text */
+}
 
+.custom-checkbox input {
+    display: none;
+}
+
+.custom-checkbox span {
+    width: 1em;
+    height: 1em;
+    border: 0.2em solid var(--color-rtpurple);
+    border-radius: 0.2em;
+    display: inline-block;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* Checkmark */
+.custom-checkbox input:checked + span::after {
+    content: "";
+    position: absolute;
+    left: 0.22em;
+    top: 0.05em;
+    width: 0.25em;
+    height: 0.5em;
+    border: solid var(--color-rtpurple);
+    border-width: 0 0.25em 0.25em 0;
+    transform: rotate(45deg);
+}

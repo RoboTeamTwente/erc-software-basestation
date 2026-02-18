@@ -15,7 +15,7 @@
 
     let { children } = $props();
 
-// ----- NAVIGATION CONFIG -----
+// ----- NAVIGATION CONFIG ----- 
     const links = [
         { name: "Science", path: "/science" },
         { name: "Navigation", path: "/navigation" },
@@ -314,10 +314,5 @@
     </div>
 </nav>
 
-
-<style>
- 
-
-</style>
 
 {@render children()}

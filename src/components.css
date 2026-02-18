@@ -123,7 +123,6 @@
 ========================================================= */
 
 .task-list {
-    max-height: 300px;
     overflow-y: scroll;
     overflow-x: hidden;
     width: 100%;
@@ -146,6 +145,10 @@
 
 .task-card:hover {
     background-color: var(--color-purple-light);;
+}
+
+.task-card.no-hover:hover {
+    background-color: var(--color-white);
 }
 
 .task-info {

@@ -103,39 +103,47 @@
 
 
 <div class="container">
-    <h1 class="heading">Task Completion Overview
-        <button class="reload-button" onclick={listFiles} title="Reload tasks">
-            ⟳
-        </button>
-    </h1>
+    <div class="grid-nest" style="grid-template-rows: 1fr 5fr">
 
-    {#if tasks.length === 0}
-        <p>No tasks found.</p>
-    {:else}
-        <div class="task-list">
-            {#each tasks as task}
-                <div class="task-card" onclick={() => selectTask(task)} role="button" tabindex="0">
-                    <div class="task-info">
-                        <span><strong>{task.task_name}</strong></span>
-                        <span>#{task.task_number}</span>
-                        <span>Time: {task.completion_time}</span>
-                        <span>Finished: {formatDate(task.finished_at)}</span>
-                        
-                        <button
-                            class="delete-button"
-                            onclick={(event) => {
-                                event.stopPropagation();
-                                deleteTask(task);
-                                }}
-                            title="Delete task"
-                        >
-                            <img class="right-icon" src="/delete.svg" alt="Delete" />
-                        </button>
-                    </div>
-                </div>
-            {/each}
+        <div class="grid-item">
+            <h1 class="heading">Task Completion Overview
+
+            </h1>
+            <button class="reload-button" onclick={listFiles} title="Reload tasks">
+                ⟳
+            </button>
         </div>
-    {/if}
+
+        <div class="grid-item">
+            {#if tasks.length === 0}
+                <p>No tasks found.</p>
+            {:else}
+                <div class="task-list">
+                    {#each tasks as task}
+                        <div class="task-card" onclick={() => selectTask(task)} role="button" tabindex="0">
+                            <div class="task-info">
+                                <span><strong>{task.task_name}</strong></span>
+                                <span>#{task.task_number}</span>
+                                <span>Time: {task.completion_time}</span>
+                                <span>Finished: {formatDate(task.finished_at)}</span>
+                                
+                                <button
+                                    class="delete-button"
+                                    onclick={(event) => {
+                                        event.stopPropagation();
+                                        deleteTask(task);
+                                        }}
+                                    title="Delete task"
+                                >
+                                    <img class="right-icon" src="/delete.svg" alt="Delete" />
+                                </button>
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+        </div>
+    </div>
 
     {#if selectedTask}
         <div class="modal-overlay">

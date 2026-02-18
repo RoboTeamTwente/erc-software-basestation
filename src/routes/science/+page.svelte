@@ -8,6 +8,7 @@
 // ----- COMPONENTS -----
     import DoubleVideo from '$lib/components/double_video.svelte';
     import Map from '$lib/components/map.svelte';
+    import SamplingLocations from '$lib/components/sampling_locations.svelte';
 
 // ----- IMPORTS ------
     import { depthCamera, frontCamera, armCamera } from '../../state.svelte';
@@ -37,6 +38,7 @@
     }
 
 
+
 // ===============================
 // LIFECYCLE
 // ===============================
@@ -50,15 +52,15 @@
 <main class="grid" style="grid-template-rows: 1fr; grid-template-columns: 5fr 3fr;">
     <div class="grid-nest" style="grid-template-rows: 1fr 1fr; grid-template-columns: 4fr 1fr;">
         <div class="grid-item" style="padding-right: 0">
-        <Map/>
+            <Map/>
         </div>
         <div class="grid-item" style="padding-left: 0;">
         <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
-            Locations of interest
+            <h1 class="heading"> Locations of interest </h1>
         </div>
         </div>
         <div class="grid-item" style="padding-right: 0">
-        <DoubleVideo camera1={cam1} camera2={cam2}/>
+            <DoubleVideo camera1={cam1} camera2={cam2}/>
         </div>
         <div class="grid-item" style="padding-left: 0">
         <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
@@ -74,8 +76,6 @@
     </div>
 
     <div class="grid-item">
-        <div class="container">
-        Sampling Locations
-        </div>
+        <SamplingLocations />
     </div>
 </main>

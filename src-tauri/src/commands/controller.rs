@@ -19,7 +19,6 @@ pub struct PickupMode {
 
 #[tauri::command]
 pub async fn pressed_key(command: MovementCommand) -> Result<(), String> {
-    println!("Received command: {:?}", command);
 
     Ok(())
 }
