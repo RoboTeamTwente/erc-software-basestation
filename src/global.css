@@ -76,7 +76,7 @@
     background-color: var(--color-white);
     border: 2px solid black;
 
-    width: 100%;
+    flex: 1;
     height: 100%;
 
     box-sizing: border-box;
@@ -257,8 +257,8 @@
 
 /* Right-side inline icon (e.g., delete/edit) */
 .right-icon {
-    height: 100%;
-    width: auto;
+    height: fit-content;
+    width:fit-content;
     background: none;
     object-fit: contain;
     margin-left: 1rem;
@@ -272,6 +272,30 @@
     border: 1px solid var(--color-rtpurple);
     padding: 2px;
 }
+
+/* Clean circular + button */
+.plus-button {
+    margin-left: auto; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: var(--color-rtpurple);
+    font-weight: bold;
+    font-size: 1.5rem;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.05s ease;
+}
+
+.plus-button:hover {
+    color: var(--color-rtpurple-dark);
+    transform: scale(1.2);
+}
+
 
 /* Checkbox */
 .custom-checkbox {

@@ -103,7 +103,7 @@
 
 
 <div class="container">
-    <div class="grid-nest" style="grid-template-rows: 1fr 5fr">
+    <div class="grid-nest" style="grid-template-rows: auto">
 
         <div class="grid-item">
             <h1 class="heading">Task Completion Overview

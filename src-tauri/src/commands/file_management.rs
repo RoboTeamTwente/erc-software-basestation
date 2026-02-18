@@ -73,7 +73,7 @@ pub fn delete_one_file(app: AppHandle, directory: String, file_name: String) -> 
 
     let file_path = chosen_dir.join(file_name);
 
-    if file_path.exists(){
+    if file_path.exists() && file_path.is_file(){
         fs::remove_file(file_path).map_err(|e| e.to_string())?;
     }
     
@@ -136,7 +136,7 @@ pub fn get_app_dir(app: AppHandle) -> Result<String, String> {
 
 //Save image from video (for Science task)
 #[tauri::command]
-pub async fn save_snapshot(app: AppHandle, port: String) -> Result<(), String> {
+pub async fn save_snapshot(app: AppHandle, port: String, file_name: String) -> Result<(), String> {
     use tokio::fs;
     use std::io::Read;
 
@@ -152,7 +152,7 @@ pub async fn save_snapshot(app: AppHandle, port: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to create images directory: {}", e))?;
     }
 
-    let url = format!("http://localhost:{}", port);
+    let url = port;
 
     // Spawn blocking to safely fetch the first JPEG frame
     let jpeg_data = tokio::task::spawn_blocking(move || -> Result<Vec<u8>, String> {
@@ -196,8 +196,7 @@ pub async fn save_snapshot(app: AppHandle, port: String) -> Result<(), String> {
     .await
     .map_err(|e| e.to_string())??;
 
-    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let file_path = images_dir.join(format!("snapshot_{}.jpg", timestamp)); // ---------> TODO: change naming to match task and sample
+    let file_path = images_dir.join(format!("{}.jpg", file_name));
 
     let mut file = fs::File::create(file_path)
         .await

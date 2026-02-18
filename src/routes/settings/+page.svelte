@@ -62,7 +62,7 @@
 
 // ----- SNAPSHOT -----
     async function saveSnapshot() {
-        await invoke("save_snapshot", {port:"5000"});
+        await invoke("save_snapshot", {port:"5000", fileName: "test"});
     }
 
 </script>

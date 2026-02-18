@@ -187,7 +187,6 @@
     background-color: var(--color-white);
     padding: 2rem;
     border-radius: 10px;
-    max-width: 400px;
     width: 90%;
     box-shadow: 0 5px 15px var(--shadow-popup);
     position: relative;
@@ -212,3 +211,54 @@
     cursor: pointer;
     box-sizing: border-box;
 }
+
+
+.video-row {
+    display: flex;
+    gap: 1rem;
+    width: 100%;
+    height: 400px; /* controls video height inside modal */
+}
+
+.clickable-video {
+    position: relative;
+    flex: 1;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0, 0, 0, 0.5); /* semi-transparent dark overlay */
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none; /* let clicks go through */
+}
+
+.clickable-video:hover .video-overlay,
+.clickable-video:focus .video-overlay {
+    opacity: 1;
+    pointer-events: auto; /* now hoverable if needed */
+}
+
+.camera-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.overlay-text {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
