@@ -121,6 +121,32 @@
     box-sizing: border-box;
 }
 
+/* Display images */
+.image-modal {
+    max-width: 900px;
+    width: 90%;
+}
+
+.image-grid {
+    display: flex;
+    gap: 2rem;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.image-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.image-column img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
 
 /* =========================================================
    TYPOGRAPHY / HEADINGS
@@ -178,7 +204,15 @@
     color: var(--color-purple-selected);
 }
 
+.image-link {
+    cursor: pointer;
+    color: #2563eb;
+    text-decoration: underline;
+}
 
+.image-link:hover {
+    opacity: 0.8;
+}
 
 /* =========================================================
    BUTTONS

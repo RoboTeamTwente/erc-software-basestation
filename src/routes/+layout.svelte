@@ -6,11 +6,13 @@
 
 // ----- SVELTE -----
     import { onMount, onDestroy } from "svelte";
+    import { get } from "svelte/store";
 
 // ----- STYLES -----
     import '../global.css';
     import '../navbar.css';
     import '../components.css';
+    import { samples } from "../stores/samples";
 
 
     let { children } = $props();
@@ -139,6 +141,7 @@
     function start() {
         startTime = performance.now() - elapsed;
         running = true;
+        samples.set([]);
         loop();
     }
 
@@ -178,7 +181,7 @@
                         completion_time: elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`,
                         finished_at: new Date().toISOString(),
                         file_name: fileName,
-                        attached_content: "",
+                        attached_content: get(samples),
                     })
                 );
 
@@ -188,6 +191,7 @@
                     data: data,
                 });
 
+                samples.set([]);
                 elapsed = 0;
                 runningTask = "None";
             } else {

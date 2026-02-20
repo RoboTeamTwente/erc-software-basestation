@@ -2,12 +2,15 @@
 // ----- TAURI / EXTERNAL -----
     import { invoke } from "@tauri-apps/api/core";
     import { confirm } from '@tauri-apps/plugin-dialog';
+    import { convertFileSrc } from '@tauri-apps/api/core';
+    import { appDataDir } from '@tauri-apps/api/path';
 
 // ----- SVELTE -----
     import { onMount } from 'svelte';
 
 // ----- STYLES -----
     import '../../global.css';
+    import type { Sample } from "../../types";
 
 
 // ----- TYPES -----
@@ -16,7 +19,7 @@
         task_number: string;
         completion_time: string;
         finished_at: string;
-        attached_content: string;
+        attached_content: Sample[];
         file_name: string;
     }
 
@@ -25,6 +28,9 @@
     let taskFiles = $state<string[]>([]);
     let tasks = $state<Task[]>([]);
     let selectedTask = $state<Task | null>(null);
+    let showImage = $state(false);
+    let imageBeforeUrl = $state("");
+    let imageAfterUrl = $state("");
 
 
 // ----- UTILITIES -----
@@ -78,8 +84,19 @@
         }
     }
 
-
-
+    async function displayImage(before:string, after: string) {
+        const directory = await appDataDir();
+        const imageBeforePath = `${directory}/images/${before}.jpg`;
+        const imageAfterPath = `${directory}/images/${after}.jpg`;
+        imageBeforeUrl = convertFileSrc(imageBeforePath);
+        imageAfterUrl = convertFileSrc(imageAfterPath);
+        showImage = true;
+    }
+    function closeImage(){
+        imageBeforeUrl = "";
+        imageAfterUrl = "";
+        showImage = false;
+    }
 // ===============================
 // POPUP
 // ===============================
@@ -103,12 +120,11 @@
 
 
 <div class="container">
-    <div class="grid-nest" style="grid-template-rows: auto">
+    <div class="grid-nest" style="grid-template-rows: auto 1fr">
 
         <div class="grid-item">
-            <h1 class="heading">Task Completion Overview
-
-            </h1>
+            <h1 class="heading">Task Completion Overview</h1>
+            
             <button class="reload-button" onclick={listFiles} title="Reload tasks">
                 ⟳
             </button>
@@ -120,7 +136,13 @@
             {:else}
                 <div class="task-list">
                     {#each tasks as task}
-                        <div class="task-card" onclick={() => selectTask(task)} role="button" tabindex="0">
+                        <div 
+                            class="task-card" 
+                            role="button" 
+                            tabindex="0" 
+                            onclick={() => selectTask(task)} 
+                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") selectTask(task); }}
+                        >
                             <div class="task-info">
                                 <span><strong>{task.task_name}</strong></span>
                                 <span>#{task.task_number}</span>
@@ -152,6 +174,60 @@
                 <h2>{selectedTask.task_name} (#{selectedTask.task_number})</h2>
                 <p><strong>Completion Time:</strong> {selectedTask.completion_time}</p>
                 <p><strong>Finished At:</strong> {formatDate(selectedTask.finished_at)}</p>
+
+                <div class="task-list" style="background-color: var(--color-offwhite);">
+                    {#each selectedTask.attached_content as sample}
+                        <hr />
+                        <p><strong>Location:</strong> {sample.location_name}</p>
+                        <p><strong>Coordinates:</strong> {sample.coordinates}</p>
+                        <p><strong>Measurement:</strong> {sample.measurement}</p>
+                        <p><strong>Weight:</strong> {sample.weight}</p>
+                        <p>
+                            <strong>Picture before sampling:</strong>
+                            <span
+                                class="image-link"
+                                role="button"
+                                tabindex="0"
+                                onclick={() => displayImage(sample.image_path_before, sample.image_path_after)}
+                                onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") displayImage(sample.image_path_before, sample.image_path_after); }}
+                            >
+                                {sample.image_path_before}
+                            </span>
+                        
+                        </p>
+                        <p><strong>Picture after sampling:</strong> 
+                            <span
+                                class="image-link"
+                                role="button"
+                                tabindex="0"
+                                onclick={() => displayImage(sample.image_path_before, sample.image_path_after)}
+                                onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") displayImage(sample.image_path_before, sample.image_path_after); }}
+                            >
+                            {sample.image_path_after}
+                            </span>
+                        </p>
+                    {/each}
+                </div>
+            </div>
+        </div>
+    {/if}
+
+    {#if showImage}
+        <div class="modal-overlay">
+            <div class="modal image-modal">
+                <button onclick={closeImage}>&times;</button>
+
+                <div class="image-grid">
+                    <div class="image-column">
+                        <h3>Image before sampling</h3>
+                        <img src={imageBeforeUrl} alt="Sample before" />
+                    </div>
+
+                    <div class="image-column">
+                        <h3>Image after sampling</h3>
+                        <img src={imageAfterUrl} alt="Sample after" />
+                    </div>
+                </div>
             </div>
         </div>
     {/if}

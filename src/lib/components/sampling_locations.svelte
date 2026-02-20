@@ -120,70 +120,44 @@
         // TODO: implement weight logic
     }
 
-    async function handleImageBefore(port: string) {
-        if (selectedIndex === null) return; // safety check
+    async function handleImage(port: string, phase: string) {
+        if (selectedIndex === null || !selectedSample) return;
 
-        const newImagePath = `${selectedSample?.label}_before`;
+        const newImagePath = `${selectedSample.label}_${phase}`;
 
-        // Update the store immutably
+        const pathKey = `image_path_${phase}` as
+            | "image_path_before"
+            | "image_path_after";
+
+        const checkKey = `image_path_${phase}_check` as
+            | "image_path_before_check"
+            | "image_path_after_check";
+
         samples.update(arr => {
             const updated = [...arr];
             updated[selectedIndex as number] = {
                 ...updated[selectedIndex as number],
-                image_path_before: newImagePath ?? "",
-                image_path_before_check: true
+                [pathKey]: newImagePath,
+                [checkKey]: true
             };
             return updated;
         });
 
-
-        // Optional: update local selectedSample for modal
         selectedSample = {
-            ...selectedSample!,
-            image_path_before: newImagePath ?? "",
-            image_path_before_check: true
+            ...selectedSample,
+            [pathKey]: newImagePath,
+            [checkKey]: true
         };
 
-
-        await invoke("save_snapshot", {port, fileName: newImagePath});
+        await invoke("save_snapshot", { port, fileName: newImagePath });
         closeModal();
     }
-
-    async function handleImageAfter(port: string) {
-        if (selectedIndex === null) return; // safety check
-
-        const newImagePath = `${selectedSample?.label}_after`;
-
-        // Update the store immutably
-        samples.update(arr => {
-            const updated = [...arr];
-            updated[selectedIndex as number] = {
-                ...updated[selectedIndex as number],
-                image_path_after: newImagePath ?? "",
-                image_path_after_check: true
-            };
-            return updated;
-        });
-
-
-        // Optional: update local selectedSample for modal
-        selectedSample = {
-            ...selectedSample!,
-            image_path_after: newImagePath ?? "",
-            image_path_after_check: true
-        };
-
-
-        await invoke("save_snapshot", {port, fileName: newImagePath});
-        closeModal();
-    }
-
 
 </script>
 
 
 <div class="container">
-    <div class="grid-nest" style="grid-template-rows: auto  2fr">
+    <div class="grid-nest" style="grid-template-rows: auto 1fr">
 
         <div class="grid-item">
             <h1 class="heading"> Sampling  Locations</h1>
@@ -327,10 +301,13 @@
                             role="button"
                             tabindex="0"
                             onclick={() => {
-                                if (modalType === "image_before") handleImageBefore(armCamera.port);
-                                else if (modalType === "image_after") handleImageAfter(armCamera.port);
+                                if (modalType === "image_before") handleImage(armCamera.port, "before");
+                                else if (modalType === "image_after") handleImage(armCamera.port, "after");
                             }}
-                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleImageBefore(armCamera.port); }}
+                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") 
+                                if (modalType === "image_before") handleImage(armCamera.port, "before"); 
+                                else if (modalType === "image_after") handleImage(armCamera.port, "after");
+                            }}
                         >
                             <Video camera={armCamera}/>
 
@@ -345,10 +322,13 @@
                             role="button"
                             tabindex="0"
                             onclick={() => {
-                                if (modalType === "image_before") handleImageBefore(frontCamera.port);
-                                else if (modalType === "image_after") handleImageAfter(frontCamera.port);
+                                if (modalType === "image_before") handleImage(frontCamera.port, "before");
+                                else if (modalType === "image_after") handleImage(frontCamera.port, "after");
                             }}
-                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleImageBefore(frontCamera.port); }}
+                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") 
+                                if (modalType === "image_before") handleImage(frontCamera.port, "before"); 
+                                else if (modalType === "image_after") handleImage(frontCamera.port, "after");
+                            }}
                         >
                             <Video camera={frontCamera}/>
 
@@ -363,10 +343,13 @@
                             role="button"
                             tabindex="0"
                             onclick={() => {
-                                if (modalType === "image_before") handleImageBefore(depthCamera.port);
-                                else if (modalType === "image_after") handleImageAfter(depthCamera.port);
+                                if (modalType === "image_before") handleImage(depthCamera.port, "before");
+                                else if (modalType === "image_after") handleImage(depthCamera.port, "after");
                             }}
-                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleImageBefore(depthCamera.port); }}
+                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") 
+                                if (modalType === "image_before") handleImage(depthCamera.port, "before"); 
+                                else if (modalType === "image_after") handleImage(depthCamera.port, "after");
+                            }}
                         >
                             <Video camera={depthCamera}/>
 

@@ -21,9 +21,14 @@
       "csp": {
         "default-src": "'self'",
         "img-src": "'self' http://localhost:5000 http://localhost:5001 http://localhost:5002",
-        "media-src": "'self' http://localhost:5000 http://localhost:5001 http://localhost:5002"
+        "media-src": "'self' http://localhost:5000 http://localhost:5001 http://localhost:5002",
+        "asset": "https://asset.localhost"
       },
-      "dangerousDisableAssetCspModification": true
+      "dangerousDisableAssetCspModification": true,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/**", "$APPDATA/images/**"]
+      }
     }
   },
   "plugins": {},
