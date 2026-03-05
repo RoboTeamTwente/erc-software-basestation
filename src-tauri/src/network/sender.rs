@@ -4,7 +4,7 @@ use prost::Message;
 pub async fn send_ping(
     socket: &UdpSocket,
     addr: &str,
-    msg: crate::proto::packets::Ping,
+    msg: crate::proto::packets::ImuSensorInformation,
 ) -> anyhow::Result<()> {
 
     let mut buffer = Vec::new();

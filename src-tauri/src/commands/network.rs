@@ -2,7 +2,7 @@ use tauri::State;
 
 use crate::network::service::UdpService;
 use crate::network::sender;
-use crate::proto::packets::Ping;
+use crate::proto::packets::ImuSensorInformation;
 
 #[tauri::command]
 pub async fn send_ping_cmd(
@@ -14,12 +14,22 @@ pub async fn send_ping_cmd(
 
     println!("Socket gotten");
 
-    let packet = Ping {
-        id: 1,
-        payload: "hello".into(),
+    let packet = ImuSensorInformation {
+        accel_x: 0.0,
+        accel_y: 0.0,
+        accel_z: 0.0,
+        gyro_x: 0.0,
+        gyro_y: 0.0,
+        gyro_z: 0.0,
+        mag_x: 0.0,
+        mag_y: 0.0,
+        mag_z: 0.0,
+        is_calibrated: false,
+        state: crate::proto::packets::SensorState::SensorIdle as i32,
+        error_code: crate::proto::packets::ImuErrorCode::ImuNoError as i32,
     };
 
-    println!("Packet encoded");
+    println!("Packet encoded {:?}", packet);
 
     sender::send_ping(&socket, "127.0.0.1:9000", packet)
         .await
