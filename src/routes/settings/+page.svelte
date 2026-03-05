@@ -17,6 +17,9 @@
     async function clearCache(){
         await invoke("clear_cache");
     }
+    async function pingUdp() {
+        await invoke("send_ping_cmd");
+    }
 
 
 // ----- FILE MANAGEMENT -----
@@ -94,6 +97,10 @@
 
     <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("maps")}>
         Delete all map files
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => pingUdp()}>
+        Ping UDP
     </button>
 
     <div>

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package packets;
+
+message Ping {
+  uint32 id = 1;
+  string payload = 2;
+}
+
+message Pong {
+  uint32 id = 1;
+}

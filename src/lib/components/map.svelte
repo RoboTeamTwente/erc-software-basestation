@@ -4,9 +4,11 @@
 
 // ----- SVELTE -----
     import { onMount } from 'svelte';
+    import { get } from "svelte/store";
 
 // ----- STYLES -----
     import '../../global.css';
+    import { displayedMap } from "../../stores/map";
 
 
 // ----- STATES -----
@@ -23,8 +25,8 @@
 // MAP MANAGEMENT
 // ===============================
     async function loadMap() {
-        openedMap = await invoke("selected_map_from_backend");
-        if (openedMap == ""){
+        openedMap = get(displayedMap);
+        if (openedMap == "" || openedMap == null){
             openedMap = null;
             listMaps();
         }
@@ -57,7 +59,7 @@
 
     async function confirmMapSelection() {
         openedMap = selectedMap;
-        await invoke("selected_map_to_backend", {fileName: openedMap});
+        displayedMap.set(openedMap);
     }
 
 
@@ -122,25 +124,3 @@
     {/if}
 
 </div>
-
-
-<style>
-    .header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .coords {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        font-size: 11px;
-        color: #888;
-    }
-
-    .muted {
-        color: #888;
-    }
-
-</style>

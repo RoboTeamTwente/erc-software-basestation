@@ -24,10 +24,10 @@
     async function togglePickup() {
         pickupMode = !pickupMode;
         setCameras();
-        await invoke("pickup_mode_to_backend", {pickupMode});
+        await invoke("set_state", {stateType: "Pickup", value: pickupMode});
     }
     async function getPickupMode() {
-        pickupMode = await invoke("pickup_mode_from_backend");
+        pickupMode = await invoke("get_state", {stateType: "Pickup"});
     }
     function setCameras(){
         if (pickupMode){

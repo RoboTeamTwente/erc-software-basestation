@@ -1,21 +1,19 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod commands;
+mod proto;
+mod network;
 
 use std::sync::Mutex;
-use commands::maps::MapState;
-use commands::controller::ControlModeState;
-use commands::controller::PickupMode;
+use tauri::Manager;
+
+use commands::rover_states::RoverState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .manage(MapState {
-            displayed_map_name: Mutex::new(String::new()),
-        })
-        .manage(ControlModeState {
-            manual_mode: Mutex::new(true),
-        })
-        .manage(PickupMode {
+        .manage(RoverState {
+            drive_manual_mode: Mutex::new(true),
+            arm_manual_mode: Mutex::new(true),
             pickup_mode: Mutex::new(false),
         })
         .plugin(tauri_plugin_fs::init())
@@ -32,13 +30,10 @@ pub fn run() {
             commands::file_management::save_snapshot,
             commands::checks::ping,
             commands::checks::clear_cache,
-            commands::maps::selected_map_to_backend,
-            commands::maps::selected_map_from_backend,
             commands::controller::pressed_key,
-            commands::controller::control_mode_to_backend,
-            commands::controller::control_mode_from_backend,
-            commands::controller::pickup_mode_to_backend,
-            commands::controller::pickup_mode_from_backend,
+            commands::rover_states::get_state,
+            commands::rover_states::set_state,
+            commands::network::send_ping_cmd,
         ])
         .setup(|app| {
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
@@ -52,6 +47,26 @@ pub fn run() {
                 // Import your streaming module
                 if let Err(e) = commands::gstreamer::stream().await {
                     eprintln!("MJPEG streaming server error: {}", e);
+                }
+            });
+
+            // Spawn udp service
+            let udp_service = tauri::async_runtime::block_on(async {
+                network::service::UdpService::new("0.0.0.0:9000")
+                    .await
+                    .expect("Failed to start UDP service")
+            });
+
+            // Extract socket BEFORE moving service
+            let udp_socket = udp_service.socket();
+
+            // Register service so commands can access it
+            app.handle().manage(udp_service);
+
+            // Spawn listener and MOVE the socket into it
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = network::listener::run_listener(udp_socket).await {
+                    eprintln!("UDP listener error: {e}");
                 }
             });
 

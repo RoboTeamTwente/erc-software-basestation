@@ -27,14 +27,17 @@
     
 
 // ----- UI STATE -----
-    let dropdownOpen = $state(false);
-    let dropdownOpen2 = $state(false);
+    let dropdownOpenTask = $state(false);
+    let dropdownOpenDrive = $state(false);
+    let dropdownOpenArm = $state(false);
     let currentPage = $state("Task");
 
 
 // ----- ROVER MODES -----
-    let manualMode = $state(true);
-    let controlMode = $state("Manual")
+    let manualDriveMode = $state(true);
+    let manualArmMode = $state(true);
+    let driveControlMode = $state("Manual drive");
+    let armControlMode = $state("Manual arm");
 
 
 // ----- INPUT STATE -----
@@ -42,39 +45,55 @@
 
 
 // ----- DROPDOWN LOGIC -----
-    function toggleDropdown() {
-        dropdownOpen = !dropdownOpen;
+    function toggleDropdownTask() {
+        dropdownOpenTask = !dropdownOpenTask;
     }
-    function toggleDropdown2() {
-        dropdownOpen2 = !dropdownOpen2;
+    function toggleDropdownDrive() {
+        dropdownOpenDrive = !dropdownOpenDrive;
     }
-
-    function handleClickOutside(event: MouseEvent) {
-        if (!dropdownEl.contains(event.target as Node)) {
-            dropdownOpen = false;
-        }
-    }
-    function handleClickOutside2(event: MouseEvent) {
-        if (!dropdownEl2.contains(event.target as Node)) {
-            dropdownOpen2 = false;
-        }
+    function toggleDropdownArm() {
+        dropdownOpenArm = !dropdownOpenArm;
     }
 
-    let dropdownEl: HTMLDivElement;
-    let dropdownEl2: HTMLDivElement;
+    function handleClickOutsideTask(event: MouseEvent) {
+        if (!dropdownElTask.contains(event.target as Node)) {
+            dropdownOpenTask = false;
+        }
+    }
+    function handleClickOutsideDrive(event: MouseEvent) {
+        if (!dropdownElDrive.contains(event.target as Node)) {
+            dropdownOpenDrive = false;
+        }
+    }
+    function handleClickOutsideArm(event: MouseEvent) {
+        if (!dropdownElArm.contains(event.target as Node)) {
+            dropdownOpenArm = false;
+        }
+    }
+
+    let dropdownElTask: HTMLDivElement;
+    let dropdownElDrive: HTMLDivElement;
+    let dropdownElArm: HTMLDivElement;
 
     $effect(() => {
-        if (dropdownOpen) {
-            document.addEventListener('click', handleClickOutside);
+        if (dropdownOpenTask) {
+            document.addEventListener('click', handleClickOutsideTask);
         } else {
-            document.removeEventListener('click', handleClickOutside);
+            document.removeEventListener('click', handleClickOutsideTask);
         }
     });
     $effect(() => {
-        if (dropdownOpen2) {
-            document.addEventListener('click', handleClickOutside2);
+        if (dropdownOpenDrive) {
+            document.addEventListener('click', handleClickOutsideDrive);
         } else {
-            document.removeEventListener('click', handleClickOutside2);
+            document.removeEventListener('click', handleClickOutsideDrive);
+        }
+    });
+    $effect(() => {
+        if (dropdownOpenArm) {
+            document.addEventListener('click', handleClickOutsideArm);
+        } else {
+            document.removeEventListener('click', handleClickOutsideArm);
         }
     });
 
@@ -83,16 +102,25 @@
     function navigateTo(path: string) {
         goto(path);
         currentPage = links.find(link => link.path === path)?.name || "Task";
-        dropdownOpen = false;
+        dropdownOpenTask = false;
     }
-    async function toggleControlMode(){
-        dropdownOpen2 = false;
-        if (manualMode){
-            controlMode = "Manual";
+    async function toggleDriveControlMode(){
+        dropdownOpenDrive = false;
+        if (manualDriveMode){
+            driveControlMode = "Manual drive";
         } else {
-            controlMode = "Automatic"
+            driveControlMode = "Automatic drive";
         }
-        await invoke("control_mode_to_backend", {manualMode});
+        await invoke("set_state", {stateType: "DriveManual", value: manualDriveMode});
+    }
+    async function toggleArmControlMode(){
+        dropdownOpenArm = false;
+        if (manualArmMode){
+            armControlMode = "Manual arm";
+        } else {
+            armControlMode = "Automatic arm";
+        }
+        await invoke("set_state", {stateType: "ArmManual", value: manualArmMode});
     }
 
 
@@ -255,8 +283,8 @@
 <!-- Navigation bar with dropdowns and control buttons -->
 <nav class="navbar">
     <!-- Task dropdown menu -->
-    <div class="dropdown" bind:this={dropdownEl} class:show={dropdownOpen}>
-        <button class="dropdown-button" onclick={toggleDropdown}>
+    <div class="dropdown" bind:this={dropdownElTask} class:show={dropdownOpenTask}>
+        <button class="dropdown-button" onclick={toggleDropdownTask}>
             {currentPage}  ▼ 
         </button>
         <div class="dropdown-content">
@@ -268,16 +296,31 @@
         </div>
     </div>
 
-    <!-- Control Mode dropdown menu -->
-    <div class="dropdown" bind:this={dropdownEl2} class:show={dropdownOpen2}>
-        <button class="dropdown-button" onclick={toggleDropdown2}>
-            {controlMode} ▼ 
+    <!-- Drive Control Mode dropdown menu -->
+    <div class="dropdown" bind:this={dropdownElDrive} class:show={dropdownOpenDrive}>
+        <button class="dropdown-button" onclick={toggleDropdownDrive}>
+            {driveControlMode} ▼ 
         </button>
         <div class="dropdown-content">
-            <a href="#" onclick={() => { manualMode = true ; toggleControlMode()}}>
+            <a href="#" onclick={() => { manualDriveMode = true ; toggleDriveControlMode()}}>
                 Manual
             </a>
-            <a href="#" onclick={() => { manualMode = false ; toggleControlMode()}}>
+            <a href="#" onclick={() => { manualDriveMode = false ; toggleDriveControlMode()}}>
+                Automatic
+            </a>
+        </div>
+    </div>
+
+    <!-- Arm Control Mode dropdown menu -->
+    <div class="dropdown" bind:this={dropdownElArm} class:show={dropdownOpenArm}>
+        <button class="dropdown-button" onclick={toggleDropdownArm}>
+            {armControlMode} ▼ 
+        </button>
+        <div class="dropdown-content">
+            <a href="#" onclick={() => { manualArmMode = true ; toggleArmControlMode()}}>
+                Manual
+            </a>
+            <a href="#" onclick={() => { manualArmMode = false ; toggleArmControlMode()}}>
                 Automatic
             </a>
         </div>

@@ -214,6 +214,24 @@
     opacity: 0.8;
 }
 
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.coords {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 11px;
+    color: #888;
+}
+
+.muted {
+    color: #888;
+}
+
 /* =========================================================
    BUTTONS
 ========================================================= */
