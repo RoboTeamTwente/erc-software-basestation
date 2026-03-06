@@ -33,6 +33,7 @@ pub fn run() {
             commands::controller::pressed_key,
             commands::rover_states::get_state,
             commands::rover_states::set_state,
+            commands::rover_commands::request_coordinates,
             commands::network::send_ping_cmd,
         ])
         .setup(|app| {

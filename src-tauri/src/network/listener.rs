@@ -12,39 +12,38 @@ pub async fn run_listener(socket: std::sync::Arc<UdpSocket>) -> anyhow::Result<(
     loop {
         let (len, addr) = socket.recv_from(&mut buf).await?;
 
-        let payload = &buf[..len];
+        // let payload = &buf[..len];
 
-        match crate::proto::packets::ImuSensorInformation::decode(payload) {
-            Ok(imu) => {
-                println!("Received IMU from {addr}: {:?}", imu);
+        // match crate::proto::packets::ImuSensorInformation::decode(payload) {
+        //     Ok(imu) => {
+        //         println!("Received IMU from {addr}: {:?}", imu);
+        //     }
+        //     Err(e) => {
+        //         eprintln!("IMU decode error from {addr}: {e}");
+        //     }
+        // }
+
+        if len < HEADER_LEN { continue; } 
+        let mut hdr = &buf[..HEADER_LEN];                                                    
+        let msg_type     = hdr.get_u16();   // big-endian by default                         
+        let payload_len  = hdr.get_u16();                                                    
+        let _seq         = hdr.get_u32(); 
+
+
+        if len != HEADER_LEN + payload_len as usize { continue; } 
+        let payload = &buf[HEADER_LEN..len]; 
+
+        match msg_type {                                                                     
+                MSG_TYPE_IMU=> {                                                                                                                     
+                    match crate::proto::packets::ImuSensorInformation::decode(payload) {                         
+                        Ok(imu) => {
+                            println!("Received IMU from {addr}: {:?}", imu);
+                        }                                        
+                        Err(e) => {
+                            eprintln!("IMU decode error: {e}");
+                        }                            
+                    }                                                                            
+                }, 0_u16 | 2_u16..=u16::MAX => todo!()                                                                                                                   
             }
-            Err(e) => {
-                eprintln!("IMU decode error from {addr}: {e}");
-            }
-        }
-
-        // if len < HEADER_LEN { continue; } 
-        // let mut hdr = &buf[..HEADER_LEN];                                                    
-        // let msg_type     = hdr.get_u16();   // big-endian by default                         
-        // let payload_len  = hdr.get_u16();                                                    
-        // let _seq         = hdr.get_u32(); 
-
-
-        // if len != HEADER_LEN + payload_len as usize { continue; } 
-        // let payload = &buf[HEADER_LEN..len]; 
-        
-    //     match msg_type {                                                                     
-    //             MSG_TYPE_IMU=> {                                                                                                                     
-    //                 match crate::proto::packets::ImuSensorInformation::decode(payload) {                         
-    //                     Ok(imu) => {
-    //                         println!("Received IMU from {addr}: {:?}", imu);
-    //                     }                                        
-    //                     Err(e) => {
-    //                         eprintln!("IMU decode error: {e}");
-    //                     }                            
-    //                 }                                                                            
-    //             }, 0_u16 | 2_u16..=u16::MAX => todo!()                                                                                                                   
-    //         }
-    // }
     }
 }

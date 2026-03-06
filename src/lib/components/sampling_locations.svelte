@@ -109,6 +109,28 @@
 // POPULATE FIELDS
 // ===============================
     async function handleCoordinates() {
+        await invoke("request_coordinates").then((coords) => {
+            const typedCoords = coords as [number, number];
+            if (selectedIndex === null || !selectedSample) return;
+
+            const coordinatesStr = `Lat: ${typedCoords[0]}, Lon: ${typedCoords[1]}`;
+
+            samples.update(arr => {
+                const updated = [...arr];
+                updated[selectedIndex as number] = {
+                    ...updated[selectedIndex as number],
+                    coordinates: coordinatesStr,
+                    coordinates_check: true
+                };
+                return updated;
+            });
+
+            selectedSample = {
+                ...selectedSample,
+                coordinates: coordinatesStr,
+                coordinates_check: true
+            };
+        });
         // TODO: implement coordinates logic
     }
 
@@ -275,12 +297,14 @@
     {#if popup}
         <div class="modal-overlay">
             <div class="modal">
-                <button onclick={closeModal}>&times;</button>
+                <button class="close-button" onclick={closeModal}>&times;</button>
                 <h1 class="heading">{selectedSample?.location_name}</h1>
 
                 {#if modalType === "coordinates"}
                     <h3>Fill in Coordinates</h3>
-                    <p>Coordinates input placeholder</p>
+                    <button class="button" onclick={handleCoordinates}>
+                        Get Coordinates from Rover
+                    </button>
                 {/if}
 
                 {#if modalType === "measurement"}

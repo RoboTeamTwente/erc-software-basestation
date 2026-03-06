@@ -206,19 +206,6 @@
     box-sizing: border-box;
 }
 
-/* Modal close button */
-.modal button {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    box-sizing: border-box;
-}
-
-
 .video-row {
     display: flex;
     gap: 1rem;

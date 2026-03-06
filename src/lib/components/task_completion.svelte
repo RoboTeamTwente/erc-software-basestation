@@ -170,7 +170,7 @@
     {#if selectedTask}
         <div class="modal-overlay">
             <div class="modal">
-                <button onclick={closeModal}>&times;</button>
+                <button class="close-button" onclick={closeModal}>&times;</button>
                 <h2>{selectedTask.task_name} (#{selectedTask.task_number})</h2>
                 <p><strong>Completion Time:</strong> {selectedTask.completion_time}</p>
                 <p><strong>Finished At:</strong> {formatDate(selectedTask.finished_at)}</p>
