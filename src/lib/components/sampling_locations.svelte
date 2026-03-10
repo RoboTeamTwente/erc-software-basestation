@@ -24,6 +24,8 @@
         | "image_after"
         | null
     >(null);
+    const cameras = [armCamera, frontCamera, depthCamera];
+    const simpleCameras = [armCamera, frontCamera];
 
 // ===============================
 // SAMPLES MANAGEMENT
@@ -70,38 +72,10 @@
         selectedIndex = null;
     }
 
-    function openCoordinatesModal(index: number) {
+    function openModal(index: number, type: "coordinates" | "measurement" | "weight" | "image_before" | "image_after") {
         selectedSample = $samples[index];
         selectedIndex = index;
-        modalType = "coordinates";
-        popup = true;
-    }
-
-    function openMeasurementModal(index: number) {
-        selectedSample = $samples[index];
-        selectedIndex = index;
-        modalType = "measurement";
-        popup = true;
-    }
-
-    function openWeightModal(index: number) {
-        selectedSample = $samples[index];
-        selectedIndex = index;
-        modalType = "weight";
-        popup = true;
-    }
-
-    function openImageBeforeModal(index: number) {
-        selectedSample = $samples[index];
-        selectedIndex = index;
-        modalType = "image_before";
-        popup = true;
-    }
-
-    function openImageAfterModal(index: number) {
-        selectedSample = $samples[index];
-        selectedIndex = index;
-        modalType = "image_after";
+        modalType = type;
         popup = true;
     }
 
@@ -131,7 +105,7 @@
                 coordinates_check: true
             };
         });
-        // TODO: implement coordinates logic
+        closeModal();
     }
 
     async function handleMeasurement() {
@@ -139,7 +113,27 @@
     }
 
     async function handleWeight() {
-        // TODO: implement weight logic
+        await invoke("request_weight").then((weight) => {
+            if (selectedIndex === null || !selectedSample) return;
+
+            const weightNum = weight as number;
+
+            samples.update(arr => {
+                const updated = [...arr];
+                updated[selectedIndex as number] = {
+                    ...updated[selectedIndex as number],
+                    weight: weightNum,
+                    weight_check: true
+                };
+                return updated;
+            });
+
+            selectedSample = {
+                ...selectedSample,
+                weight: weightNum,
+                weight_check: true
+            };
+        });
     }
 
     async function handleImage(port: string, phase: string) {
@@ -225,7 +219,7 @@
                             </label>
                             <span><strong>Coordinates: </strong></span>
                             <span>{sample.coordinates}</span>
-                            <button class="delete-button plus-button" title="Fill in coordinates" onclick={() => openCoordinatesModal(i)}>
+                            <button class="delete-button plus-button" title="Fill in coordinates" onclick={() => openModal(i, "coordinates")}>
                                 +
                             </button>
                         </div>
@@ -238,7 +232,7 @@
                             </label>
                             <span><strong>Size: </strong></span>
                             <span>{sample.measurement}</span>
-                            <button class="delete-button plus-button" title="Fill in size" onclick={() => openMeasurementModal(i)}>
+                            <button class="delete-button plus-button" title="Fill in size" onclick={() => openModal(i, "measurement")}>
                                 +
                             </button>
                         </div>
@@ -250,8 +244,8 @@
                                 <span></span>
                             </label>
                             <span><strong>Weight: </strong></span>
-                            <span>{sample.weight}</span>
-                            <button class="delete-button plus-button" title="Fill in weight" onclick={() => openWeightModal(i)}>
+                            <span>{sample.weight} {#if sample.weight_check} grams {/if}</span>
+                            <button class="delete-button plus-button" title="Fill in weight" onclick={() => openModal(i, "weight")}>
                                 +
                             </button>
                         </div>
@@ -264,7 +258,7 @@
                             </label>
                             <span><strong>Image before sampling: </strong></span>
                             <span>{sample.image_path_before}</span>
-                            <button class="delete-button plus-button" title="Fill in image before sample" onclick={() => openImageBeforeModal(i)}>
+                            <button class="delete-button plus-button" title="Fill in image before sample" onclick={() => openModal(i, "image_before")}>
                                 +
                             </button>
                         </div>
@@ -277,7 +271,7 @@
                             </label>
                             <span><strong>Image after sampling: </strong></span>
                             <span>{sample.image_path_after}</span>
-                            <button class="delete-button plus-button" title="Fill in image after sample" onclick={() => openImageAfterModal(i)}>
+                            <button class="delete-button plus-button" title="Fill in image after sample" onclick={() => openModal(i, "image_after")}>
                                 +
                             </button>
                         </div>
@@ -309,80 +303,46 @@
 
                 {#if modalType === "measurement"}
                     <h3>Fill in Measurement</h3>
-                    <p>Measurement input placeholder</p>
+                        <div class="video-row">
+                            {#each simpleCameras as cam}
+                                <div 
+                                    class="clickable-video" 
+                                    role="button"
+                                    tabindex="0"
+                                    onclick={() => handleMeasurement()}
+                                    onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleMeasurement() }}
+                                >
+                                    <Video camera={cam} pixelMode={true} measure={true}/>
+                                </div>
+                            {/each}
+                        </div>
                 {/if}
 
                 {#if modalType === "weight"}
                     <h3>Fill in Weight</h3>
-                    <p>Weight input placeholder</p>
+                    <button class="button" onclick={handleWeight}>
+                        Get Weight from Rover
+                    </button>
                 {/if}
 
-                {#if modalType === "image_before" || modalType == "image_after"}
-                    <h3>Take Image Before Sampling</h3>
+                {#if modalType === "image_before" || modalType === "image_after"}
+                    <h3>Take Image {modalType === "image_before" ? "Before Sampling" : "After Sampling"}</h3>
                     <div class="video-row">
-                        <div 
-                            class="clickable-video" 
-                            role="button"
-                            tabindex="0"
-                            onclick={() => {
-                                if (modalType === "image_before") handleImage(armCamera.port, "before");
-                                else if (modalType === "image_after") handleImage(armCamera.port, "after");
-                            }}
-                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") 
-                                if (modalType === "image_before") handleImage(armCamera.port, "before"); 
-                                else if (modalType === "image_after") handleImage(armCamera.port, "after");
-                            }}
-                        >
-                            <Video camera={armCamera}/>
-
-                            <!-- Overlay shown on hover -->
-                            <div class="video-overlay">
-                                <span class="camera-icon">📷</span>
-                                <span class="overlay-text">Take a picture</span>
+                        {#each cameras as cam}
+                            <div 
+                                class="clickable-video" 
+                                role="button"
+                                tabindex="0"
+                                onclick={() => handleImage(cam.port, modalType === "image_before" ? "before" : "after")}
+                                onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleImage(cam.port, modalType === "image_before" ? "before" : "after") }}
+                            >
+                                <Video camera={cam} pixelMode={false} measure={false}/>
+                                <div class="video-overlay">
+                                    <span class="camera-icon">📷</span>
+                                    <span class="overlay-text">Take a picture</span>
+                                </div>
                             </div>
-                        </div>
-                        <div 
-                            class="clickable-video" 
-                            role="button"
-                            tabindex="0"
-                            onclick={() => {
-                                if (modalType === "image_before") handleImage(frontCamera.port, "before");
-                                else if (modalType === "image_after") handleImage(frontCamera.port, "after");
-                            }}
-                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") 
-                                if (modalType === "image_before") handleImage(frontCamera.port, "before"); 
-                                else if (modalType === "image_after") handleImage(frontCamera.port, "after");
-                            }}
-                        >
-                            <Video camera={frontCamera}/>
-
-                            <!-- Overlay shown on hover -->
-                            <div class="video-overlay">
-                                <span class="camera-icon">📷</span>
-                                <span class="overlay-text">Take a picture</span>
-                            </div>
-                        </div>
-                        <div 
-                            class="clickable-video" 
-                            role="button"
-                            tabindex="0"
-                            onclick={() => {
-                                if (modalType === "image_before") handleImage(depthCamera.port, "before");
-                                else if (modalType === "image_after") handleImage(depthCamera.port, "after");
-                            }}
-                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") 
-                                if (modalType === "image_before") handleImage(depthCamera.port, "before"); 
-                                else if (modalType === "image_after") handleImage(depthCamera.port, "after");
-                            }}
-                        >
-                            <Video camera={depthCamera}/>
-
-                            <!-- Overlay shown on hover -->
-                            <div class="video-overlay">
-                                <span class="camera-icon">📷</span>
-                                <span class="overlay-text">Take a picture</span>
-                            </div>
-                        </div>
+                        {/each}
                     </div>
                 {/if}
 

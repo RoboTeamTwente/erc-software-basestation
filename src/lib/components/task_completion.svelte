@@ -181,7 +181,7 @@
                         <p><strong>Location:</strong> {sample.location_name}</p>
                         <p><strong>Coordinates:</strong> {sample.coordinates}</p>
                         <p><strong>Measurement:</strong> {sample.measurement}</p>
-                        <p><strong>Weight:</strong> {sample.weight}</p>
+                        <p><strong>Weight:</strong> {sample.weight} {#if sample.weight_check} grams {/if}</p>
                         <p>
                             <strong>Picture before sampling:</strong>
                             <span
@@ -215,7 +215,7 @@
     {#if showImage}
         <div class="modal-overlay">
             <div class="modal image-modal">
-                <button onclick={closeImage}>&times;</button>
+                <button class="close-button" onclick={closeImage}>&times;</button>
 
                 <div class="image-grid">
                     <div class="image-column">

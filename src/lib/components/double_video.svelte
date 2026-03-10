@@ -7,14 +7,11 @@
     let activeCam = $state(camera1);
     let secondaryCam = $state(camera2);
 
-    // React when parent props change
-    $effect(() => {
-        activeCam = camera1;
-    });
 
-    $effect(() => {
-        secondaryCam = camera2;
-    });
+    // React when parent props change
+    $effect(() => {activeCam = camera1;});
+
+    $effect(() => {secondaryCam = camera2;});
 
 
 // ------ CAMERA LOGIC -----
@@ -23,7 +20,6 @@
         activeCam = secondaryCam
         secondaryCam = temp;
     }
-
 </script>
 
 <div class="frame">

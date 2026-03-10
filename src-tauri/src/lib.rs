@@ -34,6 +34,9 @@ pub fn run() {
             commands::rover_states::get_state,
             commands::rover_states::set_state,
             commands::rover_commands::request_coordinates,
+            commands::rover_commands::request_weight,
+            commands::rover_commands::request_measurement,
+            commands::rover_commands::send_pixel,
             commands::network::send_ping_cmd,
         ])
         .setup(|app| {
