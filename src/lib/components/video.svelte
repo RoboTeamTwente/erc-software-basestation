@@ -5,6 +5,7 @@
 
 // ----- SVELTE -----
     import { onMount } from "svelte";
+    import { createEventDispatcher } from "svelte";
 
 
 // ----- STYLES -----
@@ -15,18 +16,50 @@
     let canvasElement: HTMLCanvasElement;
 
     let lastClick: {x:number,y:number, cam: string}|null = null;
+    let points: {x:number,y:number}[] = [];
+
+    const dispatch = createEventDispatcher();
+
+
+// ----- DRAW POINTS -----
+    async function drawPoints() {
+        if (!canvasElement) return;
+
+        const ctx = canvasElement.getContext("2d");
+        if (!ctx) return;
+
+        ctx.clearRect(0,0,canvasElement.width,canvasElement.height);
+
+        // draw points
+        for (const p of points) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+            ctx.fillStyle = "red";
+            ctx.fill();
+        }
+
+        // draw line if two points
+        if (points.length === 2) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            ctx.lineTo(points[1].x, points[1].y);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "red";
+            ctx.stroke();
+        }
+    }
 
 
 // ----- SELECT PIXEL -----
-    function resizeCanvas() {
+    async function resizeCanvas() {
         if (!imgElement || !canvasElement) return;
 
         const rect = imgElement.getBoundingClientRect();
         canvasElement.width = rect.width;
         canvasElement.height = rect.height;
+
+        drawPoints();
     }
-
-
 
     async function handleClick(event: MouseEvent) {
 
@@ -80,19 +113,37 @@
         const nx = coordX / displayWidth;
         const ny = coordY / displayHeight;
 
-        console.log(`Normalized image coords: (${nx}, ${ny})`);
+        // canvas coordinates for drawing
+        const canvasX = offsetX + coordX;
+        const canvasY = offsetY + coordY;
+
 
         if (measure) {
-            await invoke("request_measurement", {
-                camera1: camera.name,
-                x1: nx,
-                y1: ny,
-                camera2: lastClick ? lastClick.cam : null,
-                x2: lastClick ? lastClick.x : null,
-                y2: lastClick ? lastClick.y : null,
-            });
+
+            if (points.length === 2) {
+                points = [];
+            }
+
+            points.push({x: canvasX, y: canvasY});
+            drawPoints();
+
+            if (lastClick != null && lastClick.cam === camera.name) {
+                const result = await invoke<number>("request_measurement", {
+                    camera1: camera.name,
+                    x1: nx,
+                    y1: ny,
+                    camera2: lastClick.cam,
+                    x2: lastClick.x,
+                    y2: lastClick.y,
+                });
+
+                dispatch("measurement", result);
+                
+                lastClick = null;
+            }
 
             lastClick = {x: nx, y: ny, cam: camera.name};
+
         } else {
             await invoke("send_pixel", {
                 camera: camera.name,

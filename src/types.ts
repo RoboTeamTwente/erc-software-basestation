@@ -4,7 +4,7 @@ export type Sample = {
     coordinates: string,
     image_path_before: string,
     image_path_after: string,
-    measurement: string,
+    measurement: number | null,
     weight: number | null,
 
     location_name_check: boolean,

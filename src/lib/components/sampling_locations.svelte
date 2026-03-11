@@ -37,7 +37,7 @@
             coordinates: "",
             image_path_before: "",
             image_path_after: "",
-            measurement: "",
+            measurement: null,
             weight: null,
 
             location_name_check: false,
@@ -108,8 +108,24 @@
         closeModal();
     }
 
-    async function handleMeasurement() {
-        // TODO: implement measurement logic
+    async function handleMeasurement(value: number) {
+        if (selectedIndex === null || !selectedSample) return;
+
+        samples.update(arr => {
+            const updated = [...arr];
+            updated[selectedIndex as number] = {
+                ...updated[selectedIndex as number],
+                measurement: value,
+                measurement_check: true
+            };
+            return updated;
+        });
+
+        selectedSample = {
+            ...selectedSample,
+            measurement: value,
+            measurement_check: true
+        };
     }
 
     async function handleWeight() {
@@ -134,6 +150,7 @@
                 weight_check: true
             };
         });
+        closeModal();
     }
 
     async function handleImage(port: string, phase: string) {
@@ -305,17 +322,14 @@
                     <h3>Fill in Measurement</h3>
                         <div class="video-row">
                             {#each simpleCameras as cam}
-                                <div 
-                                    class="clickable-video" 
-                                    role="button"
-                                    tabindex="0"
-                                    onclick={() => handleMeasurement()}
-                                    onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleMeasurement() }}
-                                >
-                                    <Video camera={cam} pixelMode={true} measure={true}/>
+                                <div class="clickable-video">
+                                    <Video camera={cam} pixelMode={true} measure={true} on:measurement={(e) => handleMeasurement(e.detail)}/>
                                 </div>
                             {/each}
                         </div>
+                    <button class="button" style="align-self: flex-end;" onclick={closeModal}>
+                        Done
+                    </button>
                 {/if}
 
                 {#if modalType === "weight"}
@@ -338,7 +352,9 @@
                             >
                                 <Video camera={cam} pixelMode={false} measure={false}/>
                                 <div class="video-overlay">
-                                    <span class="camera-icon">📷</span>
+                                    <span>
+                                        <img src="/camera.svg" alt="Camera Icon"/>
+                                    </span>
                                     <span class="overlay-text">Take a picture</span>
                                 </div>
                             </div>

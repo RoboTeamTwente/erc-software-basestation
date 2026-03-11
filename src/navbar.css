@@ -5,7 +5,7 @@
 /* Main navigation bar */
 .navbar {
     display: flex;
-    justify-content: flex-start;
+    flex-direction: row;
     align-items: center;
     background: var(--color-light-gray);
     padding: 0.75rem 1.5rem;
@@ -16,8 +16,17 @@
 
 /* Right-aligned navbar section */
 .right-icons {
-    margin-left: auto;
     display: flex;
+    margin-left: auto;
+    gap: 2rem;
+    align-items: center;
+}
+
+/* Centered navbar section */
+.center-icons {
+    display: flex;
+    margin-left: auto;
+    margin-right: auto;
     gap: 2rem;
     align-items: center;
 }

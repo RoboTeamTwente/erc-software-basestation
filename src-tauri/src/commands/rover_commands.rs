@@ -22,6 +22,9 @@ pub async fn request_measurement(camera1: String, x1: f64, y1: f64, camera2: Str
     println!("Requesting measurement from rover...");
     // Simulate a delay for the request
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+    println!("Received pixel data: camera1={}, x1={}, y1={}, camera2={}, x2={}, y2={}", camera1, x1, y1, camera2, x2, y2);
+
     // Return dummy measurement
     Ok(17)
 }

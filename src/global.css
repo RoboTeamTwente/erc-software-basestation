@@ -238,6 +238,7 @@
 
 /* Primary button */
 .button {
+    display: flex;;
     background-color: var(--color-rtpurple);
     color: var(--color-white);
     padding: 0.5rem 1rem;

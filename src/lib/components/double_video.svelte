@@ -9,7 +9,7 @@
 
 
     // React when parent props change
-    $effect(() => {activeCam = camera1;});
+    $effect(() => { activeCam = camera1; secondaryCam = camera2; });
 
     $effect(() => {secondaryCam = camera2;});
 
@@ -20,6 +20,7 @@
         activeCam = secondaryCam
         secondaryCam = temp;
     }
+
 </script>
 
 <div class="frame">
@@ -31,4 +32,5 @@
         <h1 class="heading"> {secondaryCam.name} </h1>
         <img src={secondaryCam.port} class="video-img" alt="Video feed from port {secondaryCam.name}"/>
     </button>
+
 </div>

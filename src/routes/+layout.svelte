@@ -38,6 +38,7 @@
     let manualArmMode = $state(true);
     let driveControlMode = $state("Manual drive");
     let armControlMode = $state("Manual arm");
+    let pickupMode = $state(false);
 
 
 // ----- INPUT STATE -----
@@ -122,6 +123,14 @@
         }
         await invoke("set_state", {stateType: "ArmManual", value: manualArmMode});
     }
+    async function getPickupMode() {
+        pickupMode = await invoke("get_state", {stateType: "Pickup"})
+    }
+
+    $effect(() => {
+        const interval = setInterval(getPickupMode, 250);
+        return () => clearInterval(interval);
+    });
 
 
 // ===============================
@@ -334,6 +343,15 @@
                 {elapsed >= 60000 ? `${Math.floor(elapsed / 60000)}m ${Math.floor((elapsed % 60000) / 1000)}s` : `${Math.floor(elapsed / 1000)}s`}
             </span>
         </button>
+    </div>
+
+    <!-- Centered icon -->
+    <div class="center-icons">
+        {#if pickupMode}
+            <img src="/arm.svg" alt="Arm mode icon" class="mode-icon"/>
+        {:else}
+            <img src="/driving.svg" alt="Driving mode icon" class="mode-icon"/>
+        {/if}
     </div>
 
     <!-- Right-aligned icons and controls -->
