@@ -1,49 +1,139 @@
 use tokio::net::UdpSocket;
 use prost::Message;
 
-use bytes::{Buf, Bytes};  
+use crate::proto::packets::{
+    PbMessageEnvelope, PbMessageType,
 
-const MSG_TYPE_IMU: u16 = 1;                                                                 
-const HEADER_LEN: usize = 8; // PacketHeader: u16 + u16 + u32  
+    // sensor board
+    ImuSensorInformation,
+    PhSensorInformation,
+    GpsSensorInformation,
+    SensorDiagnostics,
+
+    // arm board
+    ControlSignals,
+    ArmDiagnostics,
+    MovementFeedback,
+    ActualPositions,
+    TargetMovement,
+    Obstructions,
+
+    // driving board
+    DrivingDiagnostics,
+    DrivingBoardMotorMsg,
+    MotorPeriodicProgress,
+};
 
 pub async fn run_listener(socket: std::sync::Arc<UdpSocket>) -> anyhow::Result<()> {
-    let mut buf = vec![0u8; 2048];
-    
+    let mut buf = vec![0u8; 4096];
+
     loop {
         let (len, addr) = socket.recv_from(&mut buf).await?;
 
-        // let payload = &buf[..len];
+        let envelope = PbMessageEnvelope::decode(&buf[..len])?;
 
-        // match crate::proto::packets::ImuSensorInformation::decode(payload) {
-        //     Ok(imu) => {
-        //         println!("Received IMU from {addr}: {:?}", imu);
-        //     }
-        //     Err(e) => {
-        //         eprintln!("IMU decode error from {addr}: {e}");
-        //     }
-        // }
+        match envelope.r#type.try_into() {
 
-        if len < HEADER_LEN { continue; } 
-        let mut hdr = &buf[..HEADER_LEN];                                                    
-        let msg_type     = hdr.get_u16();   // big-endian by default                         
-        let payload_len  = hdr.get_u16();                                                    
-        let _seq         = hdr.get_u32(); 
+            // ---------------- Sensor board ----------------
 
-
-        if len != HEADER_LEN + payload_len as usize { continue; } 
-        let payload = &buf[HEADER_LEN..len]; 
-
-        match msg_type {                                                                     
-                MSG_TYPE_IMU=> {                                                                                                                     
-                    match crate::proto::packets::ImuSensorInformation::decode(payload) {                         
-                        Ok(imu) => {
-                            println!("Received IMU from {addr}: {:?}", imu);
-                        }                                        
-                        Err(e) => {
-                            eprintln!("IMU decode error: {e}");
-                        }                            
-                    }                                                                            
-                }, 0_u16 | 2_u16..=u16::MAX => todo!()                                                                                                                   
+            Ok(PbMessageType::SensorBoardImuInformation) => {
+                match ImuSensorInformation::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("IMU from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("IMU decode error: {e}")
+                }
             }
+
+            Ok(PbMessageType::SensorBoardPhSensorInformation) => {
+                match PhSensorInformation::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("PH sensor from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("PH decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::SensorBoardGpsInformation) => {
+                match GpsSensorInformation::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("GPS from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("GPS decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::SensorBoardDiagnostics) => {
+                match SensorDiagnostics::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Sensor diagnostics from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("Sensor diagnostics decode error: {e}")
+                }
+            }
+
+            // ---------------- Arm board ----------------
+
+            Ok(PbMessageType::ArmBoardControlSignals) => {
+                match ControlSignals::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Control signals from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("ControlSignals decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::ArmBoardDiagnostics) => {
+                match ArmDiagnostics::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Arm diagnostics from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("ArmDiagnostics decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::ArmBoardMovementFeedback) => {
+                match MovementFeedback::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Movement feedback from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("MovementFeedback decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::ArmBoardActualPositions) => {
+                match ActualPositions::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Actual positions from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("ActualPositions decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::ArmBoardTargetMovement) => {
+                match TargetMovement::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Target movement from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("TargetMovement decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::ArmBoardObstructions) => {
+                match Obstructions::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Obstructions from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("Obstructions decode error: {e}")
+                }
+            }
+
+            // ---------------- Driving board ----------------
+
+            Ok(PbMessageType::DrivingBoardDiagnostics) => {
+                match DrivingDiagnostics::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Driving diagnostics from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("DrivingDiagnostics decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::DrivingBoardMotorMessage) => {
+                match DrivingBoardMotorMsg::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Driving motor message from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("DrivingBoardMotorMsg decode error: {e}")
+                }
+            }
+
+            Ok(PbMessageType::DrivingBoardMotorPeriodicProgress) => {
+                match MotorPeriodicProgress::decode(&envelope.data[..]) {
+                    Ok(msg) => println!("Driving motor periodic progress from {addr}: {:?}", msg),
+                    Err(e) => eprintln!("DrivingBoardMotorPeriodicProgress decode error: {e}")
+                }
+            }
+
+            _ => {
+                println!("Unhandled packet type from {addr}");
+            }
+        }
     }
 }
