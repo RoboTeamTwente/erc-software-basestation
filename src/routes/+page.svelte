@@ -6,7 +6,7 @@
     import { onMount } from "svelte";
 
 // ----- IMPORTS ------
-    import { depthCamera, frontCamera, armCamera } from '../state.svelte';
+    import { depthCamera, frontCamera, armCamera } from '../state.svelte.js';
 
 // ----- COMPONENTS -----
     import Double_Video from '$lib/components/double_video.svelte';

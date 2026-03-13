@@ -1,4 +1,4 @@
 import { writable } from "svelte/store";
-import type { Sample } from "../types"; // define Sample type in a separate file if needed
+import type { Sample } from "../types"; 
 
 export const samples = writable<Sample[]>([]);

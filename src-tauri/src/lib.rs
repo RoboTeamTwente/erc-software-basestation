@@ -40,16 +40,19 @@ pub fn run() {
             commands::network::send_ping_cmd,
         ])
         .setup(|app| {
+            let app_handle = app.handle().clone();
+
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
                 eprintln!("Failed to ensure storage dirs: {}", e);
             }
+            
             if let Err(e) = commands::checks::clear_cache_on_startup() {
                 eprintln!("Failed to clear cache on startup: {}", e);
             }
             // Spawn gstream receiver
-            tauri::async_runtime::spawn(async {
+            tauri::async_runtime::spawn(async move {
                 // Import your streaming module
-                if let Err(e) = commands::gstreamer::stream().await {
+                if let Err(e) = commands::gstreamer::stream(app_handle).await {
                     eprintln!("MJPEG streaming server error: {}", e);
                 }
             });

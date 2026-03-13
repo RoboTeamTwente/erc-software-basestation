@@ -220,6 +220,19 @@
     justify-content: space-between;
 }
 
+.stale-text {
+    color: #ff2222;
+    font-size: 2rem;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 12px rgba(255, 30, 30, 0.7);
+}
+
+.stale-text.small {
+    font-size: 1rem;
+}
+
 .coords {
     position: absolute;
     bottom: 8px;
@@ -321,9 +334,8 @@
 
 .right-icon:hover {
     background: var(--color-white);
+    border: solid 1px var(--color-rtpurple);
     border-radius: 40px;
-    border: 1px solid var(--color-rtpurple);
-    padding: 2px;
 }
 
 /* Clean circular + button */

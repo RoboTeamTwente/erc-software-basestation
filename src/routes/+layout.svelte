@@ -3,10 +3,12 @@
     import { goto } from '$app/navigation';
     import { invoke } from '@tauri-apps/api/core';
     import { confirm } from '@tauri-apps/plugin-dialog';
+    import { listen } from '@tauri-apps/api/event';
 
 // ----- SVELTE -----
     import { onMount, onDestroy } from "svelte";
     import { get } from "svelte/store";
+    import { initCameraHealthListener } from '../state.svelte.js';
 
 // ----- STYLES -----
     import '../global.css';
@@ -276,7 +278,9 @@
 // ===============================
 // LIFECYCLE
 // ===============================
-	onMount(() => {
+    initCameraHealthListener();
+    
+	onMount(async () => {
 		window.addEventListener("keydown", handleKeyDown);
 		window.addEventListener("keyup", handleKeyUp);
 	});

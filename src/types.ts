@@ -15,3 +15,9 @@ export type Sample = {
     weight_check: boolean,
     all_check: boolean,
 }
+
+export type Waypoint = {
+    id: string,
+    lat: number,
+    lng: number,
+}

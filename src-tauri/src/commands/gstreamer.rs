@@ -5,13 +5,21 @@ use gstreamer as gst;
 use gstreamer::prelude::*;
 use gstreamer_app::{AppSink, AppSinkCallbacks};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use warp::Filter;
 use async_stream::stream;
-
+use tauri::Emitter;
 
 // Shared buffer to store JPEG frames from GStreamer
 type FrameBuffer = Arc<Mutex<Option<Bytes>>>;
+// Tracks the last time a frame was received
+type LastFrameTime = Arc<Mutex<Option<Instant>>>;
+
+// Make this globally accessible via Tauri state
+pub struct CameraHealth {
+    pub stale: Arc<Mutex<Vec<(u16, bool)>>>,
+}
 
 
 pub async fn start_http_server(frames: FrameBuffer, port: u16) {
@@ -74,7 +82,7 @@ pub async fn start_http_server(frames: FrameBuffer, port: u16) {
 }
 
 /// Start a GStreamer pipeline for a given UDP port and store JPEG frames
-fn start_pipeline(port: u16, frames: FrameBuffer) -> Result<()> {
+fn start_pipeline(port: u16, frames: FrameBuffer, last_frame_time: LastFrameTime) -> Result<()> {
     let pipeline = gst::parse::launch(&format!(
         "udpsrc port={} caps=\"application/x-rtp,media=video,encoding-name=H264,payload=96\" \
          ! rtpjitterbuffer latency=50 \
@@ -95,6 +103,8 @@ fn start_pipeline(port: u16, frames: FrameBuffer) -> Result<()> {
         .unwrap();
 
     let frames_clone = frames.clone();
+    let last_frame_time_clone = last_frame_time.clone();
+
     appsink.set_callbacks(
         AppSinkCallbacks::builder()
             .new_sample(move |sink| {
@@ -113,8 +123,11 @@ fn start_pipeline(port: u16, frames: FrameBuffer) -> Result<()> {
 
                 // Update the shared frame buffer asynchronously
                 let frames_clone = frames_clone.clone();
+                let last_frame_time_clone = last_frame_time_clone.clone();
+
                 tauri::async_runtime::spawn(async move {
                     *frames_clone.lock().await = Some(frame);
+                    *last_frame_time_clone.lock().await = Some(Instant::now());
                 });
 
                 Ok(gst::FlowSuccess::Ok)
@@ -127,13 +140,52 @@ fn start_pipeline(port: u16, frames: FrameBuffer) -> Result<()> {
     Ok(())
 }
 
-pub async fn stream() -> Result<()> {
+
+/// Watches all streams and emits Tauri events when feeds go stale
+async fn watch_feed_health(
+    app_handle: tauri::AppHandle,
+    streams: Vec<(u16, LastFrameTime)>,
+) {
+    const STALE_THRESHOLD: Duration = Duration::from_secs(2);
+    const POLL_INTERVAL: Duration = Duration::from_millis(500);
+
+    loop {
+        tokio::time::sleep(POLL_INTERVAL).await;
+
+        for (port, last_frame_time) in streams.iter() {
+            let is_stale = {
+                let guard = last_frame_time.lock().await;
+                match *guard {
+                    None => true,
+                    Some(t) => t.elapsed() > STALE_THRESHOLD,
+                }
+            };
+
+            // Always emit, not just on change — frontend may have missed earlier events
+            let _ = app_handle.emit_to(
+                tauri::EventTarget::any(),
+                "camera-feed-status",
+                serde_json::json!({
+                    "port": port,
+                    "stale": is_stale,
+                }),
+            );
+        }
+    }
+}
+
+
+pub async fn stream(app_handle: tauri::AppHandle) -> Result<()> {
     gst::init()?;
 
     // Two frame buffers for two cameras
     let frames1: FrameBuffer = Arc::new(Mutex::new(None));
     let frames2: FrameBuffer = Arc::new(Mutex::new(None));
     let frames3: FrameBuffer = Arc::new(Mutex::new(None));
+
+    let last_frame1: LastFrameTime = Arc::new(Mutex::new(None));
+    let last_frame2: LastFrameTime = Arc::new(Mutex::new(None));
+    let last_frame3: LastFrameTime = Arc::new(Mutex::new(None));
 
     // Start HTTP servers for both streams
     {
@@ -154,9 +206,17 @@ pub async fn stream() -> Result<()> {
     }
 
     // Start GStreamer pipelines
-    start_pipeline(4500, frames1.clone())?;
-    start_pipeline(4501, frames2.clone())?;
-    start_pipeline(4502, frames3.clone())?;
+    start_pipeline(4500, frames1.clone(), last_frame1.clone())?;
+    start_pipeline(4501, frames2.clone(), last_frame2.clone())?;
+    start_pipeline(4502, frames3.clone(), last_frame3.clone())?;
+
+    // Start health watcher — emits "camera-feed-status" events to frontend
+    let streams = vec![
+        (5000u16, last_frame1),
+        (5001u16, last_frame2),
+        (5002u16, last_frame3),
+    ];
+    tauri::async_runtime::spawn(watch_feed_health(app_handle, streams));
 
     // Keep alive
     loop {
