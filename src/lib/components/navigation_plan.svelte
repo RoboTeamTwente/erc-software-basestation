@@ -81,10 +81,7 @@
                 + Add Map File
             </button>
             <button class="button">
-                Plan Route
-            </button>
-            <button class="button">
-                ▶︎ Go to Next Location
+                ▶︎ Plan Route
             </button>
         </div>
     </div>

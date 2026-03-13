@@ -2,7 +2,7 @@ use tauri::State;
 
 use crate::network::service::UdpService;
 use crate::network::sender;
-use crate::proto::packets::ImuSensorInformation;
+use crate::proto::packets::SensorBoardImuInfo;
 
 #[tauri::command]
 pub async fn send_ping_cmd(
@@ -14,7 +14,7 @@ pub async fn send_ping_cmd(
 
     println!("Socket gotten");
 
-    let packet = ImuSensorInformation {
+    let packet = SensorBoardImuInfo {
         accel_x: 0.0,
         accel_y: 0.0,
         accel_z: 0.0,

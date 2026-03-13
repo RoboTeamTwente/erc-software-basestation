@@ -1,18 +1,16 @@
-  use std::sync::atomic::{AtomicU32, Ordering};                                                            
-  use tokio::net::UdpSocket;                                                                               
-  use prost::Message;
+use tokio::net::UdpSocket;                                                                               
+use prost::Message;
 
-use crate::proto::packets::PbMessageType;                                                                                      
+use crate::proto::packets::*;                                                                                      
                                               
 
   pub async fn send_ping(
       socket: &UdpSocket,
       addr: &str,
-      msg: crate::proto::packets::ImuSensorInformation,
+      msg: crate::proto::packets::SensorBoardImuInfo,
   ) -> anyhow::Result<()> {
-    let envelope = crate::proto::packets::PbMessageEnvelope {
-        r#type: PbMessageType::SensorBoardImuInformation as i32,
-        data: msg.encode_to_vec(),
+    let envelope = crate::proto::packets::PbEnvelope {
+      payload: Some(pb_envelope::Payload::ImuInfo(msg))
     };
 
       let mut payload = Vec::new();

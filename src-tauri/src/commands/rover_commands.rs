@@ -18,7 +18,7 @@ pub async fn request_weight() -> Result<i16, i16> {
 }
 
 #[tauri::command]
-pub async fn request_measurement(camera1: String, x1: f64, y1: f64, camera2: String, x2: f64, y2: f64) -> Result<(i16), i16> {
+pub async fn request_measurement(camera1: String, x1: f64, y1: f64, camera2: String, x2: f64, y2: f64) -> Result<i16, i16> {
     println!("Requesting measurement from rover...");
     // Simulate a delay for the request
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
