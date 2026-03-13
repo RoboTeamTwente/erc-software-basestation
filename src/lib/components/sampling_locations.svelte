@@ -1,6 +1,7 @@
 <script lang="ts">
 // ----- EXTERNAL / TAURI -----
     import { invoke } from "@tauri-apps/api/core";
+    import { confirm } from '@tauri-apps/plugin-dialog';
 
 // ----- SVELTE -----
     import { get } from "svelte/store";
@@ -54,12 +55,21 @@
     }
 
     async function deleteSample(index: number) {
-        const currentSamples = get(samples);
-        const sample = currentSamples[index];
-        await invoke("delete_one_file", { directory: "images", fileName: sample.image_path_before });
-        await invoke("delete_one_file", { directory: "images", fileName: sample.image_path_after });
+        const confirmed = await confirm(
+            "Are you sure you want to delete this sample? This action cannot be undone.",
+            {title: "Confirm Deletion", kind: "warning"}
+        );
 
-        samples.update((arr) => arr.filter((_, i) => i !== index));
+        if (confirmed) {
+            const currentSamples = get(samples);
+            const sample = currentSamples[index];
+            await invoke("delete_one_file", { directory: "images", fileName: sample.image_path_before });
+            await invoke("delete_one_file", { directory: "images", fileName: sample.image_path_after });
+
+            samples.update((arr) => arr.filter((_, i) => i !== index));
+        }else {
+            return;
+        }
     }
 
 

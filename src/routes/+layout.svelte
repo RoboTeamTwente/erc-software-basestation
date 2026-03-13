@@ -3,7 +3,6 @@
     import { goto } from '$app/navigation';
     import { invoke } from '@tauri-apps/api/core';
     import { confirm } from '@tauri-apps/plugin-dialog';
-    import { listen } from '@tauri-apps/api/event';
 
 // ----- SVELTE -----
     import { onMount, onDestroy } from "svelte";
@@ -177,10 +176,18 @@
     let rafId: number;
     let runningTask = $state("None");
 
-    function start() {
+    async function start() {
         startTime = performance.now() - elapsed;
         running = true;
-        samples.set([]);
+        if (elapsed === 0 && get(samples).length > 0) {
+            const keepSamples = await confirm(
+                "You have unsaved samples. Would you like to keep them for the new task?",
+                { title: "Unsaved Samples", kind: "warning" }
+            );
+            if (!keepSamples) {
+                samples.set([]);
+            }
+        }
         loop();
     }
 
