@@ -134,6 +134,9 @@
             {#if tasks.length === 0}
                 <p>No tasks found.</p>
             {:else}
+                <!-- =============================== -->
+                <!-- TASK LIST                       -->
+                <!-- =============================== -->
                 <div class="task-list">
                     {#each tasks as task}
                         <div 
@@ -167,6 +170,9 @@
         </div>
     </div>
 
+    <!-- =============================== -->
+    <!-- MODAL: TASK DETAILS             -->
+    <!-- =============================== -->
     {#if selectedTask}
         <div class="modal-overlay">
             <div class="modal">
@@ -175,6 +181,7 @@
                 <p><strong>Completion Time:</strong> {selectedTask.completion_time}</p>
                 <p><strong>Finished At:</strong> {formatDate(selectedTask.finished_at)}</p>
 
+                <!-- Sample details per attached content entry -->
                 <div class="task-list" style="background-color: var(--color-offwhite);">
                     {#each selectedTask.attached_content as sample}
                         <hr />
@@ -182,6 +189,8 @@
                         <p><strong>Coordinates:</strong> {sample.coordinates}</p>
                         <p><strong>Measurement:</strong> {sample.measurement}</p>
                         <p><strong>Weight:</strong> {sample.weight} {#if sample.weight_check} grams {/if}</p>
+
+                        <!-- Image links: clicking opens the image modal -->
                         <p>
                             <strong>Picture before sampling:</strong>
                             <span
@@ -193,7 +202,6 @@
                             >
                                 {sample.image_path_before}
                             </span>
-                        
                         </p>
                         <p><strong>Picture after sampling:</strong> 
                             <span
@@ -212,6 +220,9 @@
         </div>
     {/if}
 
+    <!-- =============================== -->
+    <!-- MODAL: IMAGE VIEWER             -->
+    <!-- =============================== -->
     {#if showImage}
         <div class="modal-overlay">
             <div class="modal image-modal">

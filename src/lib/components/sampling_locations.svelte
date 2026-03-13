@@ -6,10 +6,11 @@
     import { get } from "svelte/store";
 
 // -----IMPORTS -----
+    import SampleField from '$lib/components/SampleField.svelte';
     import { samples } from "../../stores/samples";
     import type { Sample } from "../../types";
     import Video from '$lib/components/video.svelte';
-    import { armCamera, depthCamera, frontCamera } from "../../state.svelte";
+    import { armCamera, depthCamera, frontCamera } from "../../state.svelte.js";
 
 
 // ----- STATES -----
@@ -228,70 +229,50 @@
                             </button>
                         </div> 
 
-                        <!-- Coordinates (from backend later) -->
-                        <div class="task-info" style="align-items: flex-start; justify-content:flex-start; padding-left: 4rem">
-                            <label class="custom-checkbox">
-                                <input type="checkbox" bind:checked={$samples[i].coordinates_check} />
-                                <span></span>
-                            </label>
-                            <span><strong>Coordinates: </strong></span>
-                            <span>{sample.coordinates}</span>
-                            <button class="delete-button plus-button" title="Fill in coordinates" onclick={() => openModal(i, "coordinates")}>
-                                +
-                            </button>
-                        </div>
+                        <!-- Coordinates -->  
+                        <SampleField
+                            bind:checked={$samples[i].coordinates_check}
+                            label="Coordinates"
+                            value={sample.coordinates}
+                            title="Fill in coordinates"
+                            onclick={() => openModal(i, "coordinates")}
+                        />
 
-                        <!-- Measurement -->
-                        <div class="task-info" style="align-items: flex-start; justify-content:flex-start; padding-left: 4rem">
-                            <label class="custom-checkbox">
-                                <input type="checkbox" bind:checked={$samples[i].measurement_check} />
-                                <span></span>
-                            </label>
-                            <span><strong>Size: </strong></span>
-                            <span>{sample.measurement}</span>
-                            <button class="delete-button plus-button" title="Fill in size" onclick={() => openModal(i, "measurement")}>
-                                +
-                            </button>
-                        </div>
+                        <!-- Size -->  
+                        <SampleField
+                            bind:checked={$samples[i].measurement_check}
+                            label="Size"
+                            value={sample.measurement}
+                            title="Fill in size"
+                            onclick={() => openModal(i, "measurement")}
+                        />
 
-                        <!-- Weight -->
-                        <div class="task-info" style="align-items: flex-start; justify-content:flex-start; padding-left: 4rem">
-                            <label class="custom-checkbox">
-                                <input type="checkbox" bind:checked={$samples[i].weight_check} />
-                                <span></span>
-                            </label>
-                            <span><strong>Weight: </strong></span>
-                            <span>{sample.weight} {#if sample.weight_check} grams {/if}</span>
-                            <button class="delete-button plus-button" title="Fill in weight" onclick={() => openModal(i, "weight")}>
-                                +
-                            </button>
-                        </div>
+                        <!-- Weight -->  
+                        <SampleField
+                            bind:checked={$samples[i].weight_check}
+                            label="Weight"
+                            value={sample.weight != null ? `${sample.weight} grams` : ""}
+                            title="Fill in weight"
+                            onclick={() => openModal(i, "weight")}
+                        />
 
-                        <!-- Image path before sampling -->
-                        <div class="task-info" style="align-items: flex-start; justify-content:flex-start; padding-left: 4rem">
-                            <label class="custom-checkbox">
-                                <input type="checkbox" bind:checked={$samples[i].image_path_before_check} />
-                                <span></span>
-                            </label>
-                            <span><strong>Image before sampling: </strong></span>
-                            <span>{sample.image_path_before}</span>
-                            <button class="delete-button plus-button" title="Fill in image before sample" onclick={() => openModal(i, "image_before")}>
-                                +
-                            </button>
-                        </div>
+                        <!-- Image before -->  
+                        <SampleField
+                            bind:checked={$samples[i].image_path_before_check}
+                            label="Image before sampling"
+                            value={sample.image_path_before}
+                            title="Fill in image before sample"
+                            onclick={() => openModal(i, "image_before")}
+                        />
 
-                        <!-- Image path after sampling-->
-                        <div class="task-info" style="align-items: flex-start; justify-content:flex-start; padding-left: 4rem">
-                            <label class="custom-checkbox">
-                                <input type="checkbox" bind:checked={$samples[i].image_path_after_check} />
-                                <span></span>
-                            </label>
-                            <span><strong>Image after sampling: </strong></span>
-                            <span>{sample.image_path_after}</span>
-                            <button class="delete-button plus-button" title="Fill in image after sample" onclick={() => openModal(i, "image_after")}>
-                                +
-                            </button>
-                        </div>
+                        <!-- Image after -->  
+                        <SampleField
+                            bind:checked={$samples[i].image_path_after_check}
+                            label="Image after sampling"
+                            value={sample.image_path_after}
+                            title="Fill in image after sample"
+                            onclick={() => openModal(i, "image_after")}
+                        />
 
                     </div>
                 {/each}
@@ -305,12 +286,17 @@
         </div>
     </div>
 
+
+    <!-- =============================== -->
+    <!-- MODAL                           -->
+    <!-- =============================== -->
     {#if popup}
         <div class="modal-overlay">
             <div class="modal">
                 <button class="close-button" onclick={closeModal}>&times;</button>
                 <h1 class="heading">{selectedSample?.location_name}</h1>
 
+                <!-- Coordinates: fetch from rover -->
                 {#if modalType === "coordinates"}
                     <h3>Fill in Coordinates</h3>
                     <button class="button" onclick={handleCoordinates}>
@@ -318,6 +304,7 @@
                     </button>
                 {/if}
 
+                <!-- Measurement: pixel-measure via camera feed -->
                 {#if modalType === "measurement"}
                     <h3>Fill in Measurement</h3>
                         <div class="video-row">
@@ -332,6 +319,7 @@
                     </button>
                 {/if}
 
+                <!-- Weight: fetch from rover -->
                 {#if modalType === "weight"}
                     <h3>Fill in Weight</h3>
                     <button class="button" onclick={handleWeight}>
@@ -339,6 +327,7 @@
                     </button>
                 {/if}
 
+                <!-- Image capture: click any camera feed to take a snapshot -->
                 {#if modalType === "image_before" || modalType === "image_after"}
                     <h3>Take Image {modalType === "image_before" ? "Before Sampling" : "After Sampling"}</h3>
                     <div class="video-row">
