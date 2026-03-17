@@ -155,12 +155,21 @@
 /* Panel heading (always above content/images) */
 .heading {
     position: relative;
-    z-index: 1;           /* Above absolute elements */
+    z-index: 1;
     font-size: x-large;
+    font-weight: bold;
     margin: 0;
     padding: 10px;
-    color: black;      
-    box-sizing: border-box;   
+    color: black;
+    box-sizing: border-box;
+
+    /* Force own compositor layer — isolates it from MJPEG repaints */
+    will-change: transform;
+    transform: translateZ(0);
+
+    /* Lock antialiasing so it can't flicker between rendering modes */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Truncated name (e.g., map/file name) */

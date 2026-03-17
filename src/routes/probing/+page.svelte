@@ -8,6 +8,7 @@
 // ----- COMPONENTS -----
     import Map from '$lib/components/map.svelte';
     import DoubleVideo from '$lib/components/double_video.svelte';
+    import Imu from '$lib/components/imu.svelte';
 
 // ----- IMPORTS ------
     import { depthCamera, frontCamera, armCamera } from '../../state.svelte';
@@ -83,6 +84,7 @@
         </div>
 
         <div class="grid-item">
+            <Imu />
         </div>
 
     </div>

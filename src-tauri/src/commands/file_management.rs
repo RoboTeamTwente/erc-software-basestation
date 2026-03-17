@@ -123,16 +123,6 @@ pub fn import_map_file(app: AppHandle, directory: String) -> Result<(), String> 
     Ok(())
 }
 
-//Get home directory
-#[tauri::command]
-pub fn get_app_dir(app: AppHandle) -> Result<String, String> {
-    let app_dir = app
-            .path()
-            .app_data_dir()
-            .map_err(|e| e.to_string())?;
-
-    Ok(app_dir.to_string_lossy().to_string())
-}
 
 //Save image from video (for Science task)
 #[tauri::command]

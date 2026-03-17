@@ -20,6 +20,12 @@
     async function pingUdp() {
         await invoke("send_ping_cmd");
     }
+    async function startDummyStream() {
+        await invoke("start_dummy_imu_stream");
+    }
+    async function stopDummyStream() {
+        await invoke("stop_dummy_imu_stream");
+    }
 
 
 // ----- FILE MANAGEMENT -----
@@ -101,6 +107,14 @@
 
     <button class="button" style="margin: 10px;" onclick={() => pingUdp()}>
         Ping UDP
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => startDummyStream()}>
+        Start dummy IMU stream
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => stopDummyStream()}>
+        Stop dummy IMU stream
     </button>
 
     <div>

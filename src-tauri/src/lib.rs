@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use tauri::Manager;
 
 use commands::rover_states::RoverState;
+use commands::network::DummyStreamHandle;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,7 +27,6 @@ pub fn run() {
             commands::file_management::delete_one_file,
             commands::file_management::read_task_file,
             commands::file_management::import_map_file,
-            commands::file_management::get_app_dir,
             commands::file_management::save_snapshot,
             commands::checks::ping,
             commands::checks::clear_cache,
@@ -38,6 +38,8 @@ pub fn run() {
             commands::rover_commands::request_measurement,
             commands::rover_commands::send_pixel,
             commands::network::send_ping_cmd,
+            commands::network::start_dummy_imu_stream,
+            commands::network::stop_dummy_imu_stream,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -69,10 +71,12 @@ pub fn run() {
 
             // Register service so commands can access it
             app.handle().manage(udp_service);
+            app.handle().manage(DummyStreamHandle(Mutex::new(None)));
 
             // Spawn listener and MOVE the socket into it
+            let listener_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = network::listener::run_listener(udp_socket).await {
+                if let Err(e) = network::listener::run_listener(udp_socket, listener_handle).await {
                     eprintln!("UDP listener error: {e}");
                 }
             });

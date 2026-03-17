@@ -13,6 +13,7 @@
     import Map from '$lib/components/map.svelte';
     import NavigationPlan from '$lib/components/navigation_plan.svelte';
     import TaskCompletion from '$lib/components/task_completion.svelte';
+    import IMU from '$lib/components/imu.svelte';
 
 
 // ----- STATES -----
@@ -101,9 +102,7 @@
         </div>
 
         <div class="grid-item">
-        <div class="container">
-            <h1 class="heading">IMU and Sensor Data</h1> 
-        </div>
+            <IMU />
         </div>
 
     </div>

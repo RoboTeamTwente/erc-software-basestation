@@ -5,6 +5,7 @@
 
 // ----- COMPONENTS -----
     import Video from '$lib/components/video.svelte';
+    import MaintenanceTasks from "$lib/components/maintenance_tasks.svelte";
 
 // ----- IMPORTS -----
     import { armCamera, depthCamera } from "../../state.svelte";
@@ -18,7 +19,7 @@
         </div>
         <div class="grid-item" style="padding-left: 0">
         <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
-            Arm feedback
+            <h1 class="heading"> Arm feedback </h1>
         </div>
         </div>
         <div class="grid-item" style="padding-right: 0">
@@ -26,14 +27,12 @@
         </div>
         <div class="grid-item">
         <div class="container">
-            Arm position???
+            <h1 class="heading"> Arm position </h1>
         </div>
         </div>
     </div>
 
     <div class="grid-item">
-        <div class="container">
-        TODO list
-        </div>
+        <MaintenanceTasks />
     </div>
 </main>

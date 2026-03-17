@@ -50,13 +50,18 @@ fn main() -> Result<()> {
         panic!("No valid proto files found under components/");
     }
 
-    // IMPORTANT:
-    // Use the proto root — not components — so imports resolve naturally
-    prost_build::compile_protos(
-        &protos,
-        &[proto_root.to_str().expect("Invalid proto root")],
-    )
-    .expect("Failed to compile proto files");
-
+    let mut config = prost_build::Config::new();
+ 
+    // Derive serde::Serialize on every generated message struct and enum.
+    // This means SensorBoardImuInfo (and all others) can be emitted directly
+    // via tauri without any manual wrapper struct.
+    config.type_attribute(".", "#[derive(serde::Serialize)]");
+ 
+    config
+        .compile_protos(
+            &protos,
+            &[proto_root.to_str().expect("Invalid proto root")],
+        )
+        .expect("Failed to compile proto files");
     Ok(())
 }

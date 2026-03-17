@@ -8,6 +8,7 @@
     import Map from '$lib/components/map.svelte';
     import NavigationPlan from '$lib/components/navigation_plan.svelte';
     import Costmap from '$lib/components/costmap.svelte';
+    import IMU from '$lib/components/imu.svelte';
     import { depthCamera, frontCamera } from "../../state.svelte";
 
     
@@ -26,9 +27,7 @@
         </div>
 
         <div class="grid-item">
-        <div class="container">
-            IMU data
-        </div>
+            <IMU />
         </div>
 
     </div>
