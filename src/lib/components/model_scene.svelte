@@ -34,13 +34,13 @@
     ready = false
   }
 
-  let healthInterval: ReturnType<typeof setInterval>
   let mountTimer: ReturnType<typeof setTimeout>
 
   function startModel() {
     clearTimeout(mountTimer)
-    clearInterval(healthInterval)
     log('startModel — scheduling canvas mount')
+
+    const startedAt = Date.now()
 
     mountTimer = setTimeout(() => {
       if (error) return
@@ -56,41 +56,13 @@
         if (canvas) {
           canvas.addEventListener('webglcontextlost', (e) => {
             e.preventDefault()
+            if (Date.now() - startedAt < 1500) {
+              log('webglcontextlost ignored (stale from previous session)')
+              return
+            }
             log('webglcontextlost fired')
             handleError()
           })
-
-          let ticks = 0
-          healthInterval = setInterval(() => {
-            if (error || !ready) { clearInterval(healthInterval); return }
-            ticks++
-            if (ticks < 3) return
-
-            const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl') as WebGLRenderingContext | null
-            if (!gl) return
-
-            const w = canvas.width
-            const h = canvas.height
-            const points = [
-              [Math.floor(w / 2), Math.floor(h / 2)],
-              [Math.floor(w / 4), Math.floor(h / 4)],
-              [Math.floor(w * 3 / 4), Math.floor(h / 4)],
-              [Math.floor(w / 4), Math.floor(h * 3 / 4)],
-              [Math.floor(w * 3 / 4), Math.floor(h * 3 / 4)],
-            ]
-            const px = new Uint8Array(4)
-            const allBlank = points.every(([x, y]) => {
-              gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px)
-              return px[0] === 0 && px[1] === 0 && px[2] === 0 && px[3] === 0
-            })
-
-            if (allBlank) {
-              log(`health: all 5 sample points blank at tick ${ticks} — remounting canvas`)
-              clearInterval(healthInterval)
-              ready = false
-              setTimeout(() => { if (!error) ready = true }, 50)
-            }
-          }, 2000)
         }
 
         if (wrapperEl) {
@@ -107,10 +79,7 @@
       return
     }
     startModel()
-    return () => {
-      clearTimeout(mountTimer)
-      clearInterval(healthInterval)
-    }
+    return () => clearTimeout(mountTimer)
   })
 
   function retry() {
@@ -147,9 +116,7 @@
     {/if}
   </div>
 
-  {#if !error}
-    <div class="model-hint">Drag to rotate · Scroll to zoom · Right-drag to pan</div>
-  {/if}
+
 </div>
 
 <!-- Fixed debug overlay -->
@@ -233,16 +200,5 @@
     color: var(--color-rtpurple);
   }
 
-  .model-hint {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    color: #aaa;
-    letter-spacing: 0.05em;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 2;
-  }
+
 </style>

@@ -136,6 +136,9 @@
     dampingFactor={0.05}
     autoRotate={true}
     autoRotateSpeed={1.2}
+    enableRotate={false}
+    enableZoom={false}
+    enablePan={false}
     minDistance={minDist}
     maxDistance={maxDist}
     maxPolarAngle={Math.PI / 1.8}
