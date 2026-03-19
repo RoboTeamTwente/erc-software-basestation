@@ -40,6 +40,7 @@ pub fn run() {
             commands::network::send_ping_cmd,
             commands::network::start_dummy_imu_stream,
             commands::network::stop_dummy_imu_stream,
+            commands::load_model::load_model,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();

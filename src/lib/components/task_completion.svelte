@@ -76,6 +76,24 @@
         );
 
         if (confirmed) {
+            // Delete all images associated with this task
+            for (const sample of task.attached_content) {
+                const imageFiles = [
+                    `${sample.image_path_before}.jpg`,
+                    `${sample.image_path_after}.jpg`
+                ];
+
+                for (const fileName of imageFiles) {
+                    try {
+                        await invoke("delete_one_file", {
+                            directory: "images",
+                            fileName,
+                        });
+                    } catch (e) {
+                        console.error(`Failed to delete image ${fileName}:`, e);
+                    }
+                }
+            }
             await invoke("delete_one_file", {
                 directory: "tasks",
                 fileName: task.file_name,

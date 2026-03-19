@@ -1,6 +1,8 @@
 <script lang="ts">
 // ----- TAURI / EXTERNAL -----
     import { invoke } from "@tauri-apps/api/core";
+    import { convertFileSrc } from '@tauri-apps/api/core';
+    import { appDataDir } from '@tauri-apps/api/path';
 
 // ----- SVELTE -----
     import { onMount } from 'svelte';
@@ -16,6 +18,7 @@
     let mapCount = $state(0);
     let selectedMap = $state<string | null>(null);
     let openedMap = $state<string | null>(null);
+    let mapPath = $state<string>("");
 
     let mouseX = $state(0);
     let mouseY = $state(0);
@@ -29,6 +32,8 @@
         if (openedMap == "" || openedMap == null){
             openedMap = null;
             listMaps();
+        } else {
+            setPath();
         }
     }
 
@@ -51,6 +56,8 @@
         listMaps();
         openedMap = null;
         selectedMap = null;
+        displayedMap.set(null);
+        mapPath = "";
     }
 
     async function selectMap(file: string) {
@@ -60,6 +67,12 @@
     async function confirmMapSelection() {
         openedMap = selectedMap;
         displayedMap.set(openedMap);
+        setPath();
+    }
+
+    async function setPath(){
+        const path = await appDataDir() + "/maps/" + openedMap;
+        mapPath = convertFileSrc(path);
     }
 
 
@@ -117,6 +130,10 @@
         </div>
     {:else}
         Displaying map {openedMap}
+        <button class="reload-button" onclick={reload} style="z-index: 2;" title="Reload maps">
+            ⟳
+        </button>
+        <img class="video-img" src={mapPath} alt="Map" style="width: 100%; height: auto; object-fit: contain;"/>
             <!-- Coordinates -->
         <div class="coords">
             x: {mouseX} y: {mouseY}

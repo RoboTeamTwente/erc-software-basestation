@@ -5,3 +5,4 @@ pub mod gstreamer;
 pub mod rover_commands;
 pub mod rover_states;
 pub mod network;
+pub mod load_model; 

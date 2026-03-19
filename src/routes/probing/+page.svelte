@@ -9,6 +9,8 @@
     import Map from '$lib/components/map.svelte';
     import DoubleVideo from '$lib/components/double_video.svelte';
     import Imu from '$lib/components/imu.svelte';
+    import InterestLocations from '$lib/components/interest_locations.svelte';
+    import Probes from '$lib/components/probes.svelte';
 
 // ----- IMPORTS ------
     import { depthCamera, frontCamera, armCamera } from '../../state.svelte';
@@ -54,14 +56,10 @@
 
     <div class="grid-nest" style="grid-template-columns: 1fr 2fr">
         <div class="grid-item">
-        <div class="container">
-            Locations of interest
-        </div>
+            <InterestLocations />
         </div>
         <div class="grid-item">
-        <div class="container">
-            Probes
-        </div>
+            <Probes />
         </div>
     </div>
 

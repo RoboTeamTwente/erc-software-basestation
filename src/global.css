@@ -147,7 +147,12 @@
     border-radius: 6px;
 }
 
-
+.canvas-wrapper {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
 /* =========================================================
    TYPOGRAPHY / HEADINGS
 ========================================================= */

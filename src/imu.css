@@ -1,182 +1,142 @@
-/* ── Layout ──────────────────────────────────────────────────────────────── */
+/* Replaces the old .body flex row */
 .body {
-    display: flex;
-    flex: 1;
-    min-height: 0;
-    gap: 8px;
-    padding: 8px 10px 10px;
-    overflow: hidden;
-}
-
-.sensors {
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    min-width: 0;
+    padding: 8px;
 }
 
-/* ── Status pills ─────────────────────────────────────────────────────────── */
-.status-row {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-.pill {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    padding: 2px 7px;
-    border-radius: 20px;
-    white-space: nowrap;
-}
-.pill-ok      { background: #d4edda; color: #1a6b35; border: 1px solid #a8d5b5; }
-.pill-warn    { background: #fff3cd; color: #7a4f00; border: 1px solid #ffc966; }
-.pill-neutral { background: var(--color-white); color: #666; border: 1px solid var(--color-border-gray); }
-.pill-err     { background: #fde8e8; color: #8b1a1a; border: 1px solid #f5b5b5; }
-.hz           { font-variant-numeric: tabular-nums; }
-
-/* ── Sensor rows ─────────────────────────────────────────────────────────── */
 .sensor-row {
-    background: var(--color-white);
+    border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.15));
     border-radius: 8px;
     padding: 6px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    background: var(--color-background-secondary);
 }
 
-.sensor-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-}
-.sensor-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-rtpurple);
-}
-.sensor-unit {
-    font-size: 9px;
-    color: #aaa;
-}
+.sensor-meta  { display: flex; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.sensor-label { font-size: 12px; font-weight: 500; }
+.sensor-unit  { font-size: 11px; color: #888; }
+.sensor-vals  { display: flex; gap: 4px; margin-bottom: 4px; }
+.val-chip     { display: flex; gap: 4px; align-items: center; padding: 2px 6px; border-radius: 4px; border: 0.5px solid var(--ac); background: color-mix(in srgb, var(--ac) 12%, transparent); }
+.axis-tag     { font-size: 10px; font-weight: 500; color: var(--ac); }
+.axis-val     { font-size: 11px; font-variant-numeric: tabular-nums; }
+.spark        { width: 100%; height: 28px; display: block; }
 
-.sensor-vals {
+/* Bottom row */
+.bottom-row {
     display: flex;
-    gap: 4px;
-}
-.val-chip {
-    flex: 1;
-    display: flex;
-    align-items: baseline;
-    gap: 3px;
-    background: var(--color-offwhite);
-    border-radius: 4px;
-    padding: 3px 5px;
-    border-left: 2px solid var(--ac, #ccc);
-    min-width: 0;
-}
-.axis-tag {
-    font-size: 8px;
-    font-weight: 700;
-    color: var(--ac, #999);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    flex-shrink: 0;
-}
-.axis-val {
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-    color: #222;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.spark {
-    width: 100%;
-    height: 24px;
-    display: block;
-    border-radius: 3px;
-    background: var(--color-offwhite);
-}
-
-/* ── Orientation ─────────────────────────────────────────────────────────── */
-.orient {
-    width: 90px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     gap: 8px;
 }
 
-.scene {
-    width: 72px;
-    height: 72px;
-    perspective: 300px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.cube {
-    width: 52px;
-    height: 52px;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.06s linear;
-}
-.face {
-    position: absolute;
-    width: 52px;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
-    border: 1px solid rgba(90,28,116,0.25);
-    background: rgba(217,217,217,0.55);
-    color: #999;
-    backface-visibility: visible;
-}
-.face-front  { transform: translateZ(26px);             background: rgba(90,28,116,0.15); color: var(--color-rtpurple); border-color: var(--color-rtpurple); }
-.face-back   { transform: rotateY(180deg) translateZ(26px); }
-.face-left   { transform: rotateY(-90deg) translateZ(26px); }
-.face-right  { transform: rotateY( 90deg) translateZ(26px); }
-.face-top    { transform: rotateX( 90deg) translateZ(26px); }
-.face-bottom { transform: rotateX(-90deg) translateZ(26px); }
-
-.euler {
+.orient {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    width: 100%;
+    align-items: center;
+    gap: 6px;
+    border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.15));
+    border-radius: 8px;
+    padding: 10px 8px;
+    background: var(--color-background-secondary);
+    flex: 1;
+    overflow: hidden;   /* prevents cube faces escaping the frame */
 }
-.euler-row {
+
+.scene {
+    width: 120px;       /* container — larger than the cube */
+    height: 120px;
+    perspective: 360px;
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    background: var(--color-white);
-    border-radius: 4px;
-    padding: 2px 6px;
+    align-items: center;
+    justify-content: center;
 }
-.euler-label {
-    font-size: 9px;
-    font-weight: 700;
-    color: var(--color-rtpurple);
-    letter-spacing: 0.08em;
+
+/* The actual cube is smaller so rotated faces stay inside .scene */
+.cube {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    transform-style: preserve-3d;
 }
-.euler-val {
-    font-size: 10px;
+
+.face {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1.5px solid rgba(0,0,0,0.2);
+    backface-visibility: hidden;
+}
+
+.face-front  { background: rgba(55,138,221,0.18); transform: translateZ(40px); }
+.face-back   { background: rgba(55,138,221,0.10); transform: rotateY(180deg) translateZ(40px); }
+.face-left   { background: rgba(29,158,117,0.12); transform: rotateY(-90deg) translateZ(40px); }
+.face-right  { background: rgba(29,158,117,0.12); transform: rotateY(90deg)  translateZ(40px); }
+.face-top    { background: rgba(186,117,23,0.14); transform: rotateX(90deg)  translateZ(40px); }
+.face-bottom { background: rgba(186,117,23,0.10); transform: rotateX(-90deg) translateZ(40px); }
+
+.euler       { display: flex; gap: 10px; }
+.euler-row   { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.euler-label { font-size: 10px; color: #888; }
+.euler-val   { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Compass */
+.compass-wrap  { border: 0.5px solid var(--color-border-tertiary, rgba(0,0,0,0.15)); border-radius: 8px; padding: 8px; background: var(--color-background-secondary); flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.compass-label { font-size: 11px; font-weight: 500; color: #888; letter-spacing: 0.04em; align-self: flex-start; }
+.mag-vals      { display: flex; gap: 8px; }
+.mag-chip      { display: flex; gap: 3px; align-items: center; }
+
+.status-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 4px 0;
+}
+
+.pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+    color: #888;
+    background: transparent;
+}
+
+.pill-neutral {
+    color: #888;
+    background: transparent;
+    border-color: rgba(0,0,0,0.15);
+}
+
+.pill-ok {
+    color: #0F6E56;
+    background: #E1F5EE;
+    border-color: #5DCAA5;
+}
+
+.pill-warn {
+    color: #854F0B;
+    background: #FAEEDA;
+    border-color: #EF9F27;
+}
+
+.pill-err {
+    color: #993C1D;
+    background: #FAECE7;
+    border-color: #F0997B;
+}
+
+.hz {
     font-variant-numeric: tabular-nums;
-    color: #333;
+}
+
+@media (prefers-color-scheme: dark) {
+    .pill, .pill-neutral {
+        border-color: rgba(255,255,255,0.15);
+        color: #9c9a92;
+    }
 }

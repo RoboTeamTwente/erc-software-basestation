@@ -13,7 +13,7 @@
         </div>
 
         <div class="grid-item">
-            <button class="button"> Request Actions Identification </button>
+            <button class="button" style="align-self: flex-end;"> Request Actions Identification </button>
         </div>
     </div> 
 </div>

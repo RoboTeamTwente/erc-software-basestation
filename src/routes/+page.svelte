@@ -14,6 +14,7 @@
     import NavigationPlan from '$lib/components/navigation_plan.svelte';
     import TaskCompletion from '$lib/components/task_completion.svelte';
     import IMU from '$lib/components/imu.svelte';
+    import Model from '$lib/components/model_scene.svelte';
 
 
 // ----- STATES -----
@@ -78,9 +79,9 @@
         </div>
 
         <div class="grid-item">
-        <div class="container">
-            <h1 class="heading">Model</h1>
-        </div>
+            <div class="container">
+                <Model />
+            </div>
         </div>
 
         <div class="grid-item">

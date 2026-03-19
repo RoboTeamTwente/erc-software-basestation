@@ -45,11 +45,6 @@
         { color: '#5A1C74', data: Array(HISTORY).fill(0) },
         { color: '#1a7a4a', data: Array(HISTORY).fill(0) },
     ];
-    let magSeries: Series[] = [
-        { color: '#c0392b', data: Array(HISTORY).fill(0) },
-        { color: '#5A1C74', data: Array(HISTORY).fill(0) },
-        { color: '#1a7a4a', data: Array(HISTORY).fill(0) },
-    ];
 
     let pitch = 0, roll = 0, yaw = 0;
     let lastTs = 0;
@@ -57,6 +52,7 @@
     let packetCount = 0;
     let hz = 0;
     let hzInterval: ReturnType<typeof setInterval>;
+    let compassCanvas: HTMLCanvasElement;
 
     // ── rAF batching ───────────────────────────────────────────────────────
     let pending: ImuPayload | null = null;
@@ -85,6 +81,76 @@
         return d;
     }
 
+    function isDark(): boolean {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    function textColor()  { return isDark() ? '#c2c0b6' : '#3d3d3a'; }
+    function mutedColor() { return isDark() ? '#5f5e5a' : '#b4b2a9'; }
+    function ringColor()  { return isDark() ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'; }
+
+    function drawCompass(mx: number, my: number) {
+        if (!compassCanvas) return;
+        const ctx = compassCanvas.getContext('2d');
+        if (!ctx) return;
+        const W = compassCanvas.width, H = compassCanvas.height;
+        const cx = W / 2, cy = H / 2, r = W / 2 - 8;
+        ctx.clearRect(0, 0, W, H);
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = ringColor();
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Tick marks
+        for (let i = 0; i < 36; i++) {
+            const a = (i / 36) * Math.PI * 2 - Math.PI / 2;
+            const r1 = i % 9 === 0 ? r - 10 : (i % 3 === 0 ? r - 7 : r - 4);
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+            ctx.lineTo(cx + Math.cos(a) * (r - 1), cy + Math.sin(a) * (r - 1));
+            ctx.strokeStyle = i % 9 === 0 ? textColor() : mutedColor();
+            ctx.lineWidth = i % 9 === 0 ? 1.5 : 0.8;
+            ctx.stroke();
+        }
+
+        // Cardinal labels
+        const labelR = r - 18;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        (['N', 'E', 'S', 'W'] as const).forEach((lbl, idx) => {
+            const a = (idx * 90 - 90) * Math.PI / 180;
+            ctx.font = '500 11px sans-serif';
+            ctx.fillStyle = lbl === 'N' ? '#E24B4A' : textColor();
+            ctx.fillText(lbl, cx + Math.cos(a) * labelR, cy + Math.sin(a) * labelR);
+        });
+
+        // Needle
+        const headingRad = Math.atan2(my, mx);
+        const nLen = r - 26;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(headingRad) * nLen, cy + Math.sin(headingRad) * nLen);
+        ctx.strokeStyle = '#E24B4A';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx - Math.cos(headingRad) * (nLen * 0.55), cy - Math.sin(headingRad) * (nLen * 0.55));
+        ctx.strokeStyle = mutedColor();
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Center dot
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fillStyle = textColor();
+        ctx.fill();
+    }
+
     function scheduleRender() {
         if (rafId !== null) return;
         rafId = requestAnimationFrame(() => {
@@ -96,10 +162,8 @@
 
             push(accelSeries, [imu.accel_x, imu.accel_y, imu.accel_z]);
             push(gyroSeries,  [imu.gyro_x,  imu.gyro_y,  imu.gyro_z]);
-            push(magSeries,   [imu.mag_x,   imu.mag_y,   imu.mag_z]);
             accelSeries = [...accelSeries];
             gyroSeries  = [...gyroSeries];
-            magSeries   = [...magSeries];
 
             const now = performance.now();
             const dt = lastTs ? (now - lastTs) / 1000 : 0.02;
@@ -107,11 +171,12 @@
             pitch = (pitch + imu.gyro_x * dt * 57.2958) % 360;
             roll  = (roll  + imu.gyro_y * dt * 57.2958) % 360;
             yaw   = (yaw   + imu.gyro_z * dt * 57.2958) % 360;
+
+            drawCompass(imu.mag_x, imu.mag_y);
         });
     }
 
     $: cubeStyle = `transform: rotateX(${pitch.toFixed(1)}deg) rotateY(${yaw.toFixed(1)}deg) rotateZ(${roll.toFixed(1)}deg)`;
-
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
     onMount(async () => {
@@ -138,68 +203,95 @@
     <div class="header" style="padding: 8px 12px 0;">
         <h1 class="heading" style="padding: 0; font-size: 1rem;">IMU</h1>
         <div class="status-row">
-        <span class="pill" class:pill-ok={imu.is_calibrated} class:pill-warn={!imu.is_calibrated}>
-            {imu.is_calibrated ? '✓ Cal' : '! Uncal'}
-        </span>
-        <span class="pill pill-neutral">{SENSOR_STATE[imu.state] ?? imu.state}</span>
-        {#if imu.error_code !== 0}
-            <span class="pill pill-err">{IMU_ERROR[imu.error_code] ?? imu.error_code}</span>
-        {/if}
-        <span class="pill pill-neutral hz">{hz} Hz</span>
+            <span class="pill" class:pill-ok={imu.is_calibrated} class:pill-warn={!imu.is_calibrated}>
+                {imu.is_calibrated ? '✓ Cal' : '! Uncal'}
+            </span>
+            <span class="pill pill-neutral">{SENSOR_STATE[imu.state] ?? imu.state}</span>
+            {#if imu.error_code !== 0}
+                <span class="pill pill-err">{IMU_ERROR[imu.error_code] ?? imu.error_code}</span>
+            {/if}
+            <span class="pill pill-neutral hz">{hz} Hz</span>
         </div>
     </div>
 
     <!-- ── Body ── -->
     <div class="body">
 
-        <!-- Left: sensor panels stacked -->
-        <div class="sensors">
-
-        {#each [
-            { label: 'Accel', unit: 'm/s²', vals: [imu.accel_x, imu.accel_y, imu.accel_z], series: accelSeries },
-            { label: 'Gyro',  unit: '°/s',  vals: [imu.gyro_x,  imu.gyro_y,  imu.gyro_z],  series: gyroSeries  },
-            { label: 'Mag',   unit: 'µT',   vals: [imu.mag_x,   imu.mag_y,   imu.mag_z],   series: magSeries   },
-        ] as sensor}
-            <div class="sensor-row">
+        <!-- Accel -->
+        <div class="sensor-row">
             <div class="sensor-meta">
-                <span class="sensor-label">{sensor.label}</span>
-                <span class="sensor-unit">{sensor.unit}</span>
+                <span class="sensor-label">Accel</span>
+                <span class="sensor-unit">m/s²</span>
             </div>
             <div class="sensor-vals">
                 {#each ['X','Y','Z'] as axis, i}
-                <div class="val-chip" style="--ac:{sensor.series[i].color}">
+                <div class="val-chip" style="--ac:{accelSeries[i].color}">
                     <span class="axis-tag">{axis}</span>
-                    <span class="axis-val">{fmt(sensor.vals[i])}</span>
+                    <span class="axis-val">{fmt([imu.accel_x, imu.accel_y, imu.accel_z][i])}</span>
                 </div>
                 {/each}
             </div>
             <svg class="spark" viewBox="0 0 120 28" preserveAspectRatio="none">
-                {#each sensor.series as s}
+                {#each accelSeries as s}
                 <path d={sparkPath(s.data, 120, 28)} fill="none" stroke={s.color} stroke-width="1.2" opacity="0.8"/>
                 {/each}
             </svg>
-            </div>
-        {/each}
-
         </div>
 
-        <!-- Right: orientation cube -->
-        <div class="orient">
-        <div class="scene">
-            <div class="cube" style={cubeStyle}>
-            <div class="face face-front">F</div>
-            <div class="face face-back">B</div>
-            <div class="face face-left">L</div>
-            <div class="face face-right">R</div>
-            <div class="face face-top">T</div>
-            <div class="face face-bottom">↓</div>
+        <!-- Gyro -->
+        <div class="sensor-row">
+            <div class="sensor-meta">
+                <span class="sensor-label">Gyro</span>
+                <span class="sensor-unit">°/s</span>
             </div>
+            <div class="sensor-vals">
+                {#each ['X','Y','Z'] as axis, i}
+                <div class="val-chip" style="--ac:{gyroSeries[i].color}">
+                    <span class="axis-tag">{axis}</span>
+                    <span class="axis-val">{fmt([imu.gyro_x, imu.gyro_y, imu.gyro_z][i])}</span>
+                </div>
+                {/each}
+            </div>
+            <svg class="spark" viewBox="0 0 120 28" preserveAspectRatio="none">
+                {#each gyroSeries as s}
+                <path d={sparkPath(s.data, 120, 28)} fill="none" stroke={s.color} stroke-width="1.2" opacity="0.8"/>
+                {/each}
+            </svg>
         </div>
-        <div class="euler">
-            <div class="euler-row"><span class="euler-label">P</span><span class="euler-val">{pitch.toFixed(1)}°</span></div>
-            <div class="euler-row"><span class="euler-label">R</span><span class="euler-val">{roll.toFixed(1)}°</span></div>
-            <div class="euler-row"><span class="euler-label">Y</span><span class="euler-val">{yaw.toFixed(1)}°</span></div>
-        </div>
+
+        <!-- ── Bottom row: cube + compass ── -->
+        <div class="bottom-row">
+
+            <!-- Cube -->
+            <div class="orient">
+                <div class="scene">
+                    <div class="cube" style={cubeStyle}>
+                        <div class="face face-front">F</div>
+                        <div class="face face-back">B</div>
+                        <div class="face face-left">L</div>
+                        <div class="face face-right">R</div>
+                        <div class="face face-top">T</div>
+                        <div class="face face-bottom">↓</div>
+                    </div>
+                </div>
+                <div class="euler">
+                    <div class="euler-row"><span class="euler-label">P</span><span class="euler-val">{pitch.toFixed(1)}°</span></div>
+                    <div class="euler-row"><span class="euler-label">R</span><span class="euler-val">{roll.toFixed(1)}°</span></div>
+                    <div class="euler-row"><span class="euler-label">Y</span><span class="euler-val">{yaw.toFixed(1)}°</span></div>
+                </div>
+            </div>
+
+            <!-- Compass -->
+            <div class="compass-wrap">
+                <span class="compass-label">MAG</span>
+                <canvas bind:this={compassCanvas} width="130" height="130"></canvas>
+                <div class="mag-vals">
+                    <div class="mag-chip"><span class="axis-tag" style="color:#c0392b">X</span><span class="axis-val">{fmt(imu.mag_x)}</span></div>
+                    <div class="mag-chip"><span class="axis-tag" style="color:#5A1C74">Y</span><span class="axis-val">{fmt(imu.mag_y)}</span></div>
+                    <div class="mag-chip"><span class="axis-tag" style="color:#1a7a4a">Z</span><span class="axis-val">{fmt(imu.mag_z)}</span></div>
+                </div>
+            </div>
+
         </div>
 
     </div>

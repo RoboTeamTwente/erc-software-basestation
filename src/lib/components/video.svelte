@@ -5,12 +5,17 @@
 
 // ----- SVELTE -----
     import { onMount } from "svelte";
-    import { createEventDispatcher } from "svelte";
 
 
 // ----- STYLES -----
     import '../../global.css';
-    let { camera, pixelMode, measure } = $props();
+    type Props = {
+        camera: any;
+        pixelMode: boolean;
+        measure: boolean;
+        onmeasurement?: (result: number) => void;
+    }
+    let { camera, pixelMode, measure, onmeasurement }: Props = $props();
 
     let imgElement: HTMLImageElement;
     let canvasElement: HTMLCanvasElement;
@@ -18,7 +23,6 @@
     let lastClick: {x:number,y:number, cam: string}|null = null;
     let points: {x:number,y:number}[] = [];
 
-    const dispatch = createEventDispatcher();
 
 
 // ----- DRAW POINTS -----
@@ -137,7 +141,7 @@
                     y2: lastClick.y,
                 });
 
-                dispatch("measurement", result);
+                onmeasurement?.(result);
                 
                 lastClick = null;
             }

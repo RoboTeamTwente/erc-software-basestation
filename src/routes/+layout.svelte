@@ -178,7 +178,7 @@
 
     async function start() {
         startTime = performance.now() - elapsed;
-        running = true;
+        
         if (elapsed === 0 && get(samples).length > 0) {
             const keepSamples = await confirm(
                 "You have unsaved samples. Would you like to keep them for the new task?",
@@ -188,6 +188,7 @@
                 samples.set([]);
             }
         }
+        running = true;
         loop();
     }
 
