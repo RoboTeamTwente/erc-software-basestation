@@ -82,6 +82,8 @@ pub fn run() {
                 }
             });
 
+            commands::controller::start_controller_listener(app.handle().clone());
+
             Ok(())
         })
 

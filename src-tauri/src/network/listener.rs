@@ -48,7 +48,7 @@ pub async fn run_listener(socket: std::sync::Arc<UdpSocket>, app_handle: tauri::
                     println!("Sensor diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::GpsInfo(msg) => {
-                    println!("Gps info from {addr}: {:?}", msg);
+                    println!("Sensor diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ImuInfo(msg) => {
                     if last_imu_emit.elapsed().as_millis() >= 100 {

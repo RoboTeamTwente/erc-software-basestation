@@ -26,6 +26,20 @@
     async function stopDummyStream() {
         await invoke("stop_dummy_imu_stream");
     }
+    async function pingGPS() {
+        try {
+            await invoke("send_ping_cmd", { packetType: 'gps' });
+        } catch (e) {
+            console.error("pingGPS failed:", e);
+        }
+    }
+    async function pingPh() {
+        try {
+            await invoke("send_ping_cmd", { packetType: 'ph' });
+        } catch (e) {
+            console.error("pingPh failed:", e);
+        }
+    }
 
 
 // ----- FILE MANAGEMENT -----
@@ -115,6 +129,14 @@
 
     <button class="button" style="margin: 10px;" onclick={() => stopDummyStream()}>
         Stop dummy IMU stream
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => pingGPS()}>
+        Ping GPS
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => pingPh()}>
+        Ping PH
     </button>
 
     <div>
