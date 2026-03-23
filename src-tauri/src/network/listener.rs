@@ -15,40 +15,40 @@ pub async fn run_listener(socket: std::sync::Arc<UdpSocket>, app_handle: tauri::
         if let Some(payload) = envelope.payload {
             match payload {
                 pb_envelope::Payload::PhInfo(msg) => {
-                    println!("Sensor diagnostics from {addr}: {:?}", msg);
+                    // println!("Sensor diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ArmCtrl(msg) => {
-                    println!("Arm diagnostics from {addr}: {:?}", msg);
+                    // println!("Arm diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ArmDiag(msg) => {
-                    println!("Arm diagnostics from {addr}: {:?}", msg);
+                    // println!("Arm diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ArmFeedback(msg) => {
-                    println!("Arm diagnostics from {addr}: {:?}", msg);
+                    // println!("Arm diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ArmPos(msg) => {
-                    println!("Arm diagnostics from {addr}: {:?}", msg);
+                    // println!("Arm diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ArmTarget(msg) => {
-                    println!("Arm diagnostics from {addr}: {:?}", msg);
+                    // println!("Arm diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ArmObstructions(msg) => {
-                    println!("Arm diagnostics from {addr}: {:?}", msg);
+                    // println!("Arm diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::DriveDiag(msg) => {
-                    println!("Drive diagnostics from {addr}: {:?}", msg);
+                    // println!("Drive diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::DriveMotor(msg) => {
-                    println!("Drive diagnostics from {addr}: {:?}", msg);
+                    // println!("Drive diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::DriveProgress(msg) => {
-                    println!("Drive diagnostics from {addr}: {:?}", msg);
+                    // println!("Drive diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::SensorDiag(msg) => {
-                    println!("Sensor diagnostics from {addr}: {:?}", msg);
+                    // println!("Sensor diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::GpsInfo(msg) => {
-                    println!("Sensor diagnostics from {addr}: {:?}", msg);
+                    // println!("Sensor diagnostics from {addr}: {:?}", msg);
                 },
                 pb_envelope::Payload::ImuInfo(msg) => {
                     if last_imu_emit.elapsed().as_millis() >= 100 {

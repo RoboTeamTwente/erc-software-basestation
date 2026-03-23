@@ -2,12 +2,28 @@ use tauri::State;
 use std::sync::{Arc, Mutex};
 use crate::network::{service::UdpService, sender, dummy};
 use crate::proto::packets::*;
-
+use crate::network::dummy::DummyPacketType;
 pub struct DummyStreamHandle(pub Mutex<Option<Arc<Mutex<bool>>>>);
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PingPacketType { Imu, Gps, Ph, ArmCtrl, DriveMotor }
+
+const ALL_PACKET_TYPES: &[DummyPacketType] = &[
+    DummyPacketType::ImuInfo,
+    DummyPacketType::GpsInfo,
+    DummyPacketType::PhInfo,
+    DummyPacketType::ArmCtrl,
+    DummyPacketType::ArmDiag,
+    DummyPacketType::ArmFeedback,
+    DummyPacketType::ArmPos,
+    DummyPacketType::ArmTarget,
+    DummyPacketType::ArmObstructions,
+    DummyPacketType::DriveDiag,
+    DummyPacketType::DriveMotor,
+    DummyPacketType::DriveProgress,
+    DummyPacketType::SensorDiag,
+];
 
 #[tauri::command]
 pub async fn send_ping_cmd(
@@ -98,4 +114,38 @@ fn build_ping_envelope(packet_type: PingPacketType) -> PbEnvelope {
             })),
         },
     }
+}
+
+
+#[tauri::command]
+pub async fn start_dummy_streams(
+    udp: State<'_, UdpService>,
+    handle: State<'_, DummyStreamHandle>,
+) -> Result<(), String> {
+    stop_dummy_streams(handle.clone()).await?;
+
+    let cancel = Arc::new(Mutex::new(false));
+    *handle.0.lock().unwrap() = Some(cancel.clone());
+
+    for &packet_type in ALL_PACKET_TYPES {
+        let socket = udp.socket();
+        let cancel = cancel.clone();
+        std::thread::spawn(move || {
+            dummy::stream_dummy_blocking(socket, "127.0.0.1:9000".to_string(), packet_type, cancel);
+        });
+    }
+
+    println!("All dummy streams started ({} threads)", ALL_PACKET_TYPES.len());
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn stop_dummy_streams(
+    handle: State<'_, DummyStreamHandle>,
+) -> Result<(), String> {
+    if let Some(cancel) = handle.0.lock().unwrap().take() {
+        *cancel.lock().unwrap() = true;
+        println!("All dummy streams stop signalled");
+    }
+    Ok(())
 }

@@ -40,6 +40,8 @@ pub fn run() {
             commands::network::send_ping_cmd,
             commands::network::start_dummy_imu_stream,
             commands::network::stop_dummy_imu_stream,
+            commands::network::start_dummy_streams,
+            commands::network::stop_dummy_streams,
             commands::load_model::load_model,
         ])
         .setup(|app| {

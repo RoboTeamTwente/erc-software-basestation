@@ -1,8 +1,5 @@
 use tokio::net::UdpSocket;                                                                               
 use prost::Message;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
-use std::net::ToSocketAddrs;
 use crate::proto::packets::*;
 
 /// Encode any `PbEnvelope` payload, log the raw bytes, and send over UDP.

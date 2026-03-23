@@ -40,6 +40,20 @@
             console.error("pingPh failed:", e);
         }
     }
+    async function startGenDummy(){
+        try {
+            await invoke("start_dummy_streams");
+        } catch (e) {
+            console.error("startGenDummy failed:", e);
+        }
+    }
+    async function stopGenDummy(){
+        try {
+            await invoke("stop_dummy_streams");
+        } catch (e) {
+            console.error("stopGenDummy failed:", e);
+        }
+    }
 
 
 // ----- FILE MANAGEMENT -----
@@ -123,6 +137,14 @@
         Ping UDP
     </button>
 
+    <button class="button" style="margin: 10px;" onclick={() => pingGPS()}>
+        Ping GPS
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => pingPh()}>
+        Ping PH
+    </button>
+
     <button class="button" style="margin: 10px;" onclick={() => startDummyStream()}>
         Start dummy IMU stream
     </button>
@@ -131,12 +153,12 @@
         Stop dummy IMU stream
     </button>
 
-    <button class="button" style="margin: 10px;" onclick={() => pingGPS()}>
-        Ping GPS
+    <button class="button" style="margin: 10px;" onclick={() => startGenDummy()}>
+        Start dummy general stream
     </button>
 
-    <button class="button" style="margin: 10px;" onclick={() => pingPh()}>
-        Ping PH
+    <button class="button" style="margin: 10px;" onclick={() => stopGenDummy()}>
+        Stop dummy general stream
     </button>
 
     <div>
