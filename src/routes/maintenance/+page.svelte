@@ -15,7 +15,7 @@
 
     <div class="grid-nest" style="grid template-rows: 1fr 1fr; grid-template-columns: 4fr 1fr;">
         <div class="grid-item" style="padding-right: 0">
-        <Video camera={armCamera} pixelMode={false} measure={false}/>
+        <Video camera={armCamera}/>
         </div>
         <div class="grid-item" style="padding-left: 0">
         <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
@@ -23,7 +23,7 @@
         </div>
         </div>
         <div class="grid-item" style="padding-right: 0">
-        <Video camera={depthCamera} pixelMode={false} measure={false}/>
+        <Video camera={depthCamera}/>
         </div>
         <div class="grid-item">
         <div class="container">

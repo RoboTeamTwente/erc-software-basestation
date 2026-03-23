@@ -105,12 +105,12 @@ pub fn stream_dummy_imu_blocking(socket: Arc<UdpSocket>, addr: String, cancel: A
             continue;
         }
 
-        println!(
-            "[UDP TX stream] {} bytes to {}: {}",
-            buf.len(),
-            socket_addr,
-            hex_dump(&buf)
-        );
+        // println!(
+        //     "[UDP TX stream] {} bytes to {}: {}",
+        //     buf.len(),
+        //     socket_addr,
+        //     hex_dump(&buf)
+        // );
 
         if let Err(e) = socket.try_send_to(&buf, socket_addr) {
             if e.kind() != std::io::ErrorKind::WouldBlock {

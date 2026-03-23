@@ -11,11 +11,10 @@
     import '../../global.css';
     type Props = {
         camera: any;
-        pixelMode: boolean;
-        measure: boolean;
+        mode?: 'pick' | 'measure' | null;
         onmeasurement?: (result: number) => void;
     }
-    let { camera, pixelMode, measure, onmeasurement }: Props = $props();
+    let { camera, mode, onmeasurement }: Props = $props();
 
     let imgElement: HTMLImageElement;
     let canvasElement: HTMLCanvasElement;
@@ -121,8 +120,14 @@
         const canvasX = offsetX + coordX;
         const canvasY = offsetY + coordY;
 
-
-        if (measure) {
+        if (mode === 'pick') {
+            await invoke("send_pixel", {
+                camera: camera.name,
+                x: nx,
+                y: ny,
+            });
+            return;
+        } else if (mode === 'measure') {
 
             if (points.length === 2) {
                 points = [];
@@ -149,11 +154,7 @@
             lastClick = {x: nx, y: ny, cam: camera.name};
 
         } else {
-            await invoke("send_pixel", {
-                camera: camera.name,
-                x: nx,
-                y: ny,
-            });
+            return;
         }
     }
 
@@ -170,7 +171,7 @@
 <div class="frame">
     <h1 class="heading"> {camera.name} </h1>
     <img class="video-img" bind:this={imgElement} src={camera.port} alt="Live video stream at {camera.name}" onload={resizeCanvas}/>
-    {#if pixelMode}
+    {#if mode === 'pick' || mode === 'measure'}
         <canvas bind:this={canvasElement} onclick={handleClick} style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair; border: 2px solid #; z-index: 101;"></canvas>
     {/if}
     {#if camera.stale}

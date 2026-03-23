@@ -26,6 +26,7 @@
         | "image_after"
         | null
     >(null);
+    let pickupOverlay = $state(false);
     const cameras = [armCamera, frontCamera, depthCamera];
     const simpleCameras = [armCamera, frontCamera];
 
@@ -72,6 +73,9 @@
         }
     }
 
+// ----- PICKUP -----
+    async function pick() {
+    }
 
 
 // ===============================
@@ -289,9 +293,12 @@
             </div>
         </div>
 
-        <div class="grid-item">
-            <button class="button" onclick={addNewSample}>
+        <div class="grid-item" style="flex-direction: column">
+            <button class="button" style="align-self: flex-end;" onclick={addNewSample}>
                 + Add Sampling Location
+            </button>
+            <button class="button" style="align-self: flex-end;" onclick={() => pickupOverlay = true}>
+                Pick up probe
             </button>
         </div>
     </div>
@@ -320,7 +327,7 @@
                         <div class="video-row">
                             {#each simpleCameras as cam}
                                 <div class="clickable-video">
-                                    <Video camera={cam} pixelMode={true} measure={true} on:measurement={(e) => handleMeasurement(e.detail)}/>
+                                    <Video camera={cam} mode={'measure'} onmeasurement={(result) => handleMeasurement(result)}/>
                                 </div>
                             {/each}
                         </div>
@@ -349,7 +356,7 @@
                                 onclick={() => handleImage(cam.port, modalType === "image_before" ? "before" : "after")}
                                 onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") handleImage(cam.port, modalType === "image_before" ? "before" : "after") }}
                             >
-                                <Video camera={cam} pixelMode={false} measure={false}/>
+                                <Video camera={cam}/>
                                 <div class="video-overlay">
                                     <span>
                                         <img src="/camera.svg" alt="Camera Icon"/>
@@ -365,4 +372,26 @@
         </div>
     {/if}
 
+    <!-- Image capture: click any camera feed to take a snapshot -->
+    {#if pickupOverlay}
+        <div class="modal-overlay">
+            <div class="modal" >
+                <button class="close-button" onclick={() => pickupOverlay = false}>&times;</button>
+                <h1>Pick up probe</h1>
+                <div class="video-row">
+                    {#each cameras as cam}
+                        <div 
+                            class="clickable-video" 
+                            role="button"
+                            tabindex="0"
+                            onclick={() => pick}
+                            onkeypress={(e) => { if (e.key === "Enter" || e.key === " ") pick() }}
+                        >
+                            <Video camera={cam} mode="pick"/>
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        </div>
+    {/if}
 </div>
