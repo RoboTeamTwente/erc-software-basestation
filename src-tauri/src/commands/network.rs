@@ -69,7 +69,7 @@ pub async fn stop_dummy_imu_stream(
     Ok(())
 }
 
-// Moved out of the command body so it's easy to test independently
+
 fn build_ping_envelope(packet_type: PingPacketType) -> PbEnvelope {
     match packet_type {
         PingPacketType::Imu => PbEnvelope {
