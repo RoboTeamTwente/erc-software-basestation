@@ -32,7 +32,7 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: install frontend dependencies
-        run: bun install
+        run: yarn install
 
       - uses: tauri-apps/tauri-action@6434f9aaff0a2daf202596b552c34c463d0e43ed
         env:
