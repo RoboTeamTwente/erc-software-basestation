@@ -20,7 +20,7 @@ jobs:
           node-version: lts/*
 
       - name: install Rust stable
-        uses: actions-rs/rust-toolchain@stable
+        uses: actions-rs/rust-toolchain@v1
         with:
           toolchain: stable
           default: true # set the toolchain as default
