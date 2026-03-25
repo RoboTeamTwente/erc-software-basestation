@@ -10,7 +10,10 @@ const config = {
   preprocess: vitePreprocess(),
   kit: {
     adapter: adapter({
-      fallback: "index.html",
+      pages: 'build',
+      assets: 'build',
+      fallback: 'index.html',  // important for SPA routing
+      precompress: false
     }),
   },
 };

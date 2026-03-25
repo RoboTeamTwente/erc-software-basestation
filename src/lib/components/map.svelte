@@ -70,9 +70,13 @@
         setPath();
     }
 
-    async function setPath(){
-        const path = await appDataDir() + "/maps/" + openedMap;
-        mapPath = convertFileSrc(path);
+    async function setPath() {
+        const base = await appDataDir();
+        // Ensure no double slashes — appDataDir() may or may not have trailing slash
+        const normalized = base.endsWith('/') ? base : base + '/';
+        const fullPath = normalized + 'maps/' + openedMap;
+        mapPath = convertFileSrc(fullPath);
+        console.log("Map path:", mapPath);
     }
 
 

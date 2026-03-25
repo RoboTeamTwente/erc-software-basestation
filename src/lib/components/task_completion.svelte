@@ -103,9 +103,10 @@
     }
 
     async function displayImage(before:string, after: string) {
-        const directory = await appDataDir();
-        const imageBeforePath = `${directory}/images/${before}.jpg`;
-        const imageAfterPath = `${directory}/images/${after}.jpg`;
+        const base = await appDataDir();
+        const directory = base.endsWith('/') ? base : base + '/';
+        const imageBeforePath = `${directory}images/${before}.jpg`;
+        const imageAfterPath = `${directory}images/${after}.jpg`;
         imageBeforeUrl = convertFileSrc(imageBeforePath);
         imageAfterUrl = convertFileSrc(imageAfterPath);
         showImage = true;

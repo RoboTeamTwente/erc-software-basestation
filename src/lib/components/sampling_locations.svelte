@@ -298,7 +298,7 @@
                 + Add Sampling Location
             </button>
             <button class="button" style="align-self: flex-end;" onclick={() => pickupOverlay = true}>
-                Pick up probe
+                Pick up Rock
             </button>
         </div>
     </div>

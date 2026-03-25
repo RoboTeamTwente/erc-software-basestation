@@ -46,6 +46,12 @@ pub fn run() {
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
+            // Point GStreamer at bundled plugins
+            let resource_dir = app.path().resource_dir().unwrap();
+            std::env::set_var(
+                "GST_PLUGIN_PATH",
+                resource_dir.to_str().unwrap()
+            );
 
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
                 eprintln!("Failed to ensure storage dirs: {}", e);
