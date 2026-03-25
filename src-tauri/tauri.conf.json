@@ -30,7 +30,9 @@
       "dangerousDisableAssetCspModification": false,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/**"]
+        "scope": [
+          "$APPDATA/**"
+        ]
       }
     }
   },
@@ -39,9 +41,8 @@
     "active": true,
     "targets": "all",
     "resources": [
-      "../static/models/*",
-      "/usr/lib/x86_64-linux-gnu/gstreamer-1.0/*.so"
-      ],
+      "../static/models/*"
+    ],
     "icon": [
       "icons/128x128.png",
       "icons/128x128@2x.png",
