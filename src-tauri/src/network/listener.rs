@@ -43,6 +43,10 @@ struct Throttles {
     drive_motor: Throttle,
     drive_progress: Throttle,
     sensor_diag: Throttle,
+    control_mode: Throttle,
+    mission_command: Throttle,
+    detected_objects: Throttle,
+    object_selection: Throttle
 }
 
 impl Throttles {
@@ -61,6 +65,10 @@ impl Throttles {
             drive_motor: Throttle::new(),
             drive_progress: Throttle::new(),
             sensor_diag: Throttle::new(),
+            control_mode: Throttle::new(),
+            mission_command: Throttle::new(),
+            detected_objects: Throttle::new(),
+            object_selection: Throttle::new()
         }
     }
 }
@@ -151,6 +159,26 @@ pub async fn run_listener(
             Payload::SensorDiag(msg) => {
                 if t.sensor_diag.ready() {
                     app_handle.emit( "sensor-diag-update", &msg);
+                }
+            }
+            Payload::ControlMode(msg) => {
+                if t.control_mode.ready() {
+                    app_handle.emit( "control-mode-update", &msg);
+                }
+            }
+            Payload::MissionCommand(msg) => {
+                if t.mission_command.ready() {
+                    app_handle.emit( "mission-command-update", &msg);
+                }
+            }
+            Payload::DetectedObjects(msg) => {
+                if t.detected_objects.ready() {
+                    app_handle.emit( "detected-objects-update", &msg);
+                }
+            }
+            Payload::ObjectSelection(msg) => {
+                if t.object_selection.ready() {
+                    app_handle.emit( "object-selection-update", &msg);
                 }
             }
         }

@@ -5,7 +5,7 @@
     import { setLoadFailed, wasLoadFailed } from './model_debug'
     import ModelViewer from './model_viewer.svelte'
 
-    const { modelPath = 'models/your-model.glb' }: { modelPath?: string } = $props()
+    const { modelPath = 'models/chibiRover.glb' }: { modelPath?: string } = $props()
 
     let ready = $state(false)
     let error = $state(wasLoadFailed())
