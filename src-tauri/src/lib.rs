@@ -46,12 +46,12 @@ pub fn run() {
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
-            // Point GStreamer at bundled plugins
-            let resource_dir = app.path().resource_dir().unwrap();
-            std::env::set_var(
-                "GST_PLUGIN_PATH",
-                resource_dir.to_str().unwrap()
-            );
+
+            #[cfg(target_os = "linux")]
+            std::env::set_var("GST_PLUGIN_PATH", "/usr/lib/x86_64-linux-gnu/gstreamer-1.0");
+
+            #[cfg(target_os = "windows")]
+            std::env::set_var("GST_PLUGIN_PATH", "C:\\gstreamer\\1.0\\msvc_x86_64\\bin");
 
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
                 eprintln!("Failed to ensure storage dirs: {}", e);
