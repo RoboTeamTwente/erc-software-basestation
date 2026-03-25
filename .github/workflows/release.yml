@@ -1,4 +1,4 @@
-name: Build and Release Basestation
+name: Build and Release Tauri App
 
 on:
   push:
@@ -37,14 +37,19 @@ jobs:
     - name: Build Tauri app
       run: cargo tauri build
 
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ matrix.os }}-build
-        path: src-tauri/target/release/bundle/
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-    - name: Create GitHub Release
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: src-tauri/target/release/bundle/**
-        tag: ${{ github.ref_name }}
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            src-tauri/target/release/bundle/**
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
