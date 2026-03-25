@@ -3,7 +3,7 @@ name: Build and Release Tauri App
 on:
   push:
     tags:
-      - 'v*.*.*'  # Trigger on version tags like v1.0.0
+      - 'v*.*.*'
 
 jobs:
   build:
@@ -18,14 +18,14 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: 20
+        node-version: 24
 
     - name: Setup Rust
       uses: actions-rs/toolchain@v1
       with:
-        toolchain: stable
+        profile: minimal
         override: true
 
     - name: Install Tauri CLI
@@ -37,6 +37,12 @@ jobs:
     - name: Build Tauri app
       run: cargo tauri build
 
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4   # <-- updated here
+      with:
+        name: ${{ matrix.os }}-build
+        path: src-tauri/target/release/bundle/
+
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -47,8 +53,7 @@ jobs:
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: |
-            src-tauri/target/release/bundle/**
+          artifacts: src-tauri/target/release/bundle/**
           tag: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           draft: false
