@@ -102,6 +102,27 @@
         await invoke("save_snapshot", {port:"5000", fileName: "test"});
     }
 
+
+// ----- CHECK MY IP -----
+    let ip = '';
+    let loading = false;
+    let error = '';
+
+    async function getIP() {
+        loading = true;
+        error = '';
+        ip = '';
+
+        try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        ip = data.ip;
+        } catch (e) {
+        error = 'Failed to fetch IP';
+        } finally {
+        loading = false;
+        }
+    }
 </script>
 
 <div>
@@ -161,6 +182,24 @@
         Stop dummy general stream
     </button>
 
+
+    <button class="button" onclick={getIP}>
+        Check my IP
+    </button>
+
+    {#if loading}
+    <p>Loading...</p>
+    {/if}
+
+    {#if ip}
+    <p>Your IP: {ip}</p>
+    {/if}
+
+    {#if error}
+    <p style="color:red">{error}</p>
+    {/if}
+
+    
     <div>
         {#if taskFiles.length > 0}
         <div style="margin: 10px;">
