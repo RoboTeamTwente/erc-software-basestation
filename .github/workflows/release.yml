@@ -42,3 +42,9 @@ jobs:
       with:
         name: ${{ matrix.os }}-build
         path: src-tauri/target/release/bundle/
+
+    - name: Create GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: src-tauri/target/release/bundle/**
+        tag: ${{ github.ref_name }}
