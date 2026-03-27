@@ -1,0 +1,8 @@
+Command (use in project root) to build in docker:
+    sudo docker run --rm \
+    -v $(pwd):/app \
+    -v tauri-cargo-cache:/root/.cargo/registry \
+    tauri-ubuntu2204
+
+Gstreamer in webcam:
+    gst-launch-1.0 v4l2src ! videoconvert ! x264enc tune=zerolatency bitrate=800 speed-preset=ultrafast ! rtph264pay ! udpsink host=127.0.0.1 port=4500

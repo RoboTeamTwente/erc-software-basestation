@@ -54,6 +54,10 @@
             console.error("stopGenDummy failed:", e);
         }
     }
+    async function whereIsTheModel() {
+        const debug = await invoke('debug_resource_dir')
+        console.log(debug)
+    }
 
 
 // ----- FILE MANAGEMENT -----
@@ -180,6 +184,10 @@
 
     <button class="button" style="margin: 10px;" onclick={() => stopGenDummy()}>
         Stop dummy general stream
+    </button>
+
+    <button class="button" style="margin: 10px" onclick={() => whereIsTheModel()}>
+        Where is the model
     </button>
 
 

@@ -43,6 +43,7 @@ pub fn run() {
             commands::network::start_dummy_streams,
             commands::network::stop_dummy_streams,
             commands::load_model::load_model,
+            commands::load_model::debug_resource_dir,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
