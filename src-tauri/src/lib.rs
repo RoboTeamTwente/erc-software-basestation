@@ -39,7 +39,6 @@ pub fn run() {
             commands::rover_commands::send_pixel,
             commands::network::send_ping_cmd,
             commands::network::start_dummy_imu_stream,
-            commands::network::stop_dummy_imu_stream,
             commands::network::start_dummy_streams,
             commands::network::stop_dummy_streams,
             commands::load_model::load_model,
@@ -81,7 +80,9 @@ pub fn run() {
 
             // Register service so commands can access it
             app.handle().manage(udp_service);
-            app.handle().manage(DummyStreamHandle(Mutex::new(None)));
+            app.handle().manage(DummyStreamHandle{
+                cancel: Mutex::new(None),
+            });
 
             // Spawn listener and MOVE the socket into it
             let listener_handle = app.handle().clone();
