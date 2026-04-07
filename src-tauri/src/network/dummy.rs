@@ -144,14 +144,12 @@ pub fn build_dummy_envelope(packet_type: &DummyPacketType, t: f32) -> PbEnvelope
         DummyPacketType::ArmDiag => {
             pb_envelope::Payload::ArmDiag(ArmBoardDiagnostics {
                 state: arm_board_diagnostics::State::Operating as i32,
-                motor_diagnostics: Some(ArmBoardMotorDiagnostics {
-                    gripper_rotation_motor: Some(dummy_motor(0, t, 0.30)),
-                    gripper_pitch_motor:    Some(dummy_motor(1, t, 0.22)),
-                    base_motor:             Some(dummy_motor(2, t, 0.15)),
-                    top_motor:              Some(dummy_motor(3, t, 0.18)),
-                    bottom_motor:           Some(dummy_motor(4, t, 0.20)),
-                    jaw_motor:              Some(dummy_motor(5, t, 0.40)),
-                }),
+                gripper_rotation_motor: Some(dummy_motor(0, t, 0.30)),
+                gripper_pitch_motor:    Some(dummy_motor(1, t, 0.22)),
+                base_motor:             Some(dummy_motor(2, t, 0.15)),
+                top_motor:              Some(dummy_motor(3, t, 0.18)),
+                bottom_motor:           Some(dummy_motor(4, t, 0.20)),
+                jaw_motor:              Some(dummy_motor(5, t, 0.40)),
             })
         }
 

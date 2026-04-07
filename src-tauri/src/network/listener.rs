@@ -46,7 +46,12 @@ struct Throttles {
     control_mode: Throttle,
     mission_command: Throttle,
     detected_objects: Throttle,
-    object_selection: Throttle
+    object_selection: Throttle,
+    load_cell: Throttle,
+    pressure: Throttle,
+    rock_measure_request: Throttle,
+    rock_measure_result: Throttle,
+    rover_localization: Throttle,
 }
 
 impl Throttles {
@@ -68,7 +73,12 @@ impl Throttles {
             control_mode: Throttle::new(),
             mission_command: Throttle::new(),
             detected_objects: Throttle::new(),
-            object_selection: Throttle::new()
+            object_selection: Throttle::new(),
+            load_cell: Throttle::new(),
+            pressure: Throttle::new(),
+            rock_measure_request: Throttle::new(),
+            rock_measure_result: Throttle::new(),
+            rover_localization: Throttle::new(),
         }
     }
 }
@@ -179,6 +189,31 @@ pub async fn run_listener(
             Payload::ObjectSelection(msg) => {
                 if t.object_selection.ready() {
                     app_handle.emit( "object-selection-update", &msg);
+                }
+            }
+            Payload::LoadCellInfo(msg) => {
+                if t.load_cell.ready() {
+                    app_handle.emit("load-cell-update", &msg);
+                }
+            }
+            Payload::PressureInfo(msg) => {
+                if t.pressure.ready() {
+                    app_handle.emit("pressure-update", &msg);
+                }
+            }
+            Payload::RockMeasureRequest(msg) => {
+                if t.rock_measure_request.ready() {
+                    app_handle.emit("rock-measure-request-update", &msg);
+                }
+            }
+            Payload::RockMeasureResult(msg) => {
+                if t.rock_measure_result.ready() {
+                    app_handle.emit("rock-measure-result-update", &msg);
+                }
+            }
+            Payload::RoverLocalization(msg) => {
+                if t.rover_localization.ready() {
+                    app_handle.emit("rover-localization-update", &msg);
                 }
             }
         }
