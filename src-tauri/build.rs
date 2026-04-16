@@ -1,6 +1,8 @@
 use std::fs;
 use std::io::Result;
 use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
+use std::process::Command;
 
 fn collect_protos(dir: &Path, protos: &mut Vec<PathBuf>) -> std::io::Result<()> {
     for entry in fs::read_dir(dir)? {
@@ -50,7 +52,11 @@ fn copy_and_patch_proto(
  
     // Only inject if not already present (idempotent, safe to re-run)
     if !lines.iter().any(|l| l.trim() == inject) {
-        let insert_at = if lines.is_empty() { 0 } else { 1 };
+        let insert_at = lines
+            .iter()
+            .position(|l| l.trim_start().starts_with("syntax"))
+            .map(|i| i + 1)
+            .unwrap_or(0);
         lines.insert(insert_at, inject);
     }
  
@@ -62,6 +68,47 @@ fn copy_and_patch_proto(
  
     fs::write(&dest, patched)?;
     Ok(dest)
+}
+
+
+fn generate_ts_proto(stable_proto_dir: &Path) -> std::io::Result<()> {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    // go up from src-tauri -> project root
+    let project_root = manifest_dir.join("..").canonicalize()?;
+
+    let ts_plugin = project_root
+        .join("node_modules/.bin/protoc-gen-ts_proto")
+        .canonicalize()
+        .expect("ts-proto plugin not found");
+
+    let output_dir = project_root.join("src/lib/proto");
+    fs::create_dir_all(&output_dir)?;
+
+    let mut proto_files = Vec::new();
+
+    for entry in WalkDir::new(stable_proto_dir) {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.extension().and_then(|s| s.to_str()) == Some("proto") {
+            proto_files.push(path.to_string_lossy().to_string());
+        }
+    }
+
+    let status = Command::new("protoc")
+        .arg(format!("--plugin=protoc-gen-ts_proto={}", ts_plugin.display()))
+        .arg(format!("--ts_proto_out={}", output_dir.display()))
+        .arg("--ts_proto_opt=outputJsonMethods=true,useOptionals=all,snakeToCamel=false")
+        .arg("-I")
+        .arg(stable_proto_dir)
+        .args(&proto_files)
+        .status()?;
+
+    if !status.success() {
+        panic!("ts-proto generation failed");
+    }
+
+    Ok(())
 }
 
 
@@ -100,6 +147,14 @@ fn main() -> Result<()> {
         fs::remove_dir_all(&tmp_proto_dir)?;
     }
     fs::create_dir_all(&tmp_proto_dir)?;
+
+    // Also create a stable directory 
+    let stable_proto_dir = PathBuf::from("generated_proto");
+
+    if stable_proto_dir.exists() {
+        fs::remove_dir_all(&stable_proto_dir)?;
+    }
+    fs::create_dir_all(&stable_proto_dir)?;
  
     // Produce patched copies
     let mut patched_protos = Vec::new();
@@ -109,7 +164,10 @@ fn main() -> Result<()> {
         patched_protos.push(patched);
     }
 
- 
+    for original in &protos {
+        let patched = copy_and_patch_proto(original, &proto_root, &stable_proto_dir)?;
+    }
+
     // Derive serde::Serialize on every generated message struct and enum.
     // This means SensorBoardImuInfo (and all others) can be emitted directly
     // via tauri without any manual wrapper struct.
@@ -122,5 +180,8 @@ fn main() -> Result<()> {
             &[tmp_proto_dir.to_str().expect("Invalid tmp proto dir")],
         )
         .expect("Failed to compile proto files");
+
+    generate_ts_proto(&stable_proto_dir)?;
+
     Ok(())
 }
