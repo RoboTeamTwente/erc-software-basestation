@@ -64,6 +64,7 @@ pub fn stream_table() -> Vec<StreamSpec> {
         StreamSpec { interval: Duration::from_millis(50),  generator: gen_drive_motor },
         StreamSpec { interval: Duration::from_millis(100), generator: gen_drive_progress },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_sensor_diag },
+        StreamSpec { interval: Duration::from_millis(2000), generator: gen_detected_objects },
     ]
 }
 
@@ -262,6 +263,70 @@ fn gen_sensor_diag(t: f32) -> pb_envelope::Payload {
 
         board_temperature: 42.0 + (t * 0.03).sin() * 2.0,
         board_voltage: 3.3 + (t * 0.05).cos() * 0.02,
+    })
+}
+
+fn gen_detected_objects(t: f32) -> pb_envelope::Payload {
+    // Cycle through a few different "frames" so the UI updates visibly
+    let frame_id = (t / 2.0) as u32;
+ 
+    // Rotate through different object layouts every few seconds
+    let scenario = (frame_id % 4) as usize;
+ 
+    let layouts: &[&[(DetectedObjectType, u32, u32, u32, u32, f32)]] = &[
+        // scenario 0: main switch + two buttons
+        &[
+            (DetectedObjectType::ObjectMainSwitch, 120, 80,  160, 60,  0.94),
+            (DetectedObjectType::ObjectButton,     310, 200, 60,  60,  0.87),
+            (DetectedObjectType::ObjectButton,     400, 200, 60,  60,  0.82),
+        ],
+        // scenario 1: rotary switch + socket + cable
+        &[
+            (DetectedObjectType::ObjectRotarySwitch, 200, 150, 80,  80,  0.91),
+            (DetectedObjectType::ObjectSocket,        350, 120, 70,  70,  0.88),
+            (DetectedObjectType::ObjectCable,         450, 300, 120, 30,  0.76),
+        ],
+        // scenario 2: electromagnet + plate
+        &[
+            (DetectedObjectType::ObjectElectromagnet, 160, 100, 100, 100, 0.85),
+            (DetectedObjectType::ObjectPlate,         320, 250, 180, 80,  0.79),
+        ],
+        // scenario 3: full panel — all types
+        &[
+            (DetectedObjectType::ObjectMainSwitch,    60,  60,  120, 50,  0.96),
+            (DetectedObjectType::ObjectSwitch,        220, 55,  60,  55,  0.90),
+            (DetectedObjectType::ObjectRotarySwitch,  330, 50,  80,  80,  0.88),
+            (DetectedObjectType::ObjectButton,        440, 60,  55,  55,  0.83),
+            (DetectedObjectType::ObjectSocket,        120, 200, 70,  70,  0.81),
+            (DetectedObjectType::ObjectElectromagnet, 250, 190, 90,  90,  0.78),
+            (DetectedObjectType::ObjectCable,         370, 250, 130, 30,  0.72),
+        ],
+    ];
+ 
+    let objects = layouts[scenario];
+    let total = objects.len() as u32;
+ 
+    // We emit only the FIRST object here; real code would emit one message per object.
+    // For the simulator we emit index 0 with total_count set so the frontend
+    // knows to expect more, then subsequent ticks deliver higher indices.
+    // Simpler approach for a dummy: encode all objects in index=0 by abusing
+    // index cycling via the fractional part of t.
+    let idx = ((t * 5.0) as u32) % total; // rotate through indices quickly
+    let (obj_type, x, y, w, h, conf) = objects[idx as usize];
+ 
+    pb_envelope::Payload::DetectedObject(BasestationDetectedObject {
+        frame_id,
+        total_count: total,
+        index: idx,
+        id: idx + frame_id * 10,
+        r#type: obj_type as i32,
+        bbox: Some(BoundingBox {
+            x: x + ((t * 0.7).sin() * 5.0) as u32,  // slight jitter
+            y: y + ((t * 0.5).cos() * 3.0) as u32,
+            width: w,
+            height: h,
+        }),
+        confidence: conf - ((t * 0.3).sin().abs() * 0.05), // slight confidence wobble
     })
 }
 

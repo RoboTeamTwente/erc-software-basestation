@@ -1,5 +1,5 @@
 <script lang="ts">
-
+    import { listen } from '@tauri-apps/api/event';
 </script>
 
 
@@ -8,8 +8,13 @@
         <div class="grid-item">
             <h1 class="heading"> Maintenance Panel Actions </h1>
         </div>
-        <div class="grid-item">
 
+        <div class="grid-item">
+            <div class="task-list">
+                <div class="task-card">
+                    Actions to do like this
+                </div>
+            </div>
         </div>
 
         <div class="grid-item" style="flex-direction: column;">

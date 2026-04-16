@@ -17,6 +17,7 @@ pub fn run() {
             arm_manual_mode: Mutex::new(true),
             pickup_mode: Mutex::new(false),
         })
+        //Plugins must be loaded here
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -46,9 +47,6 @@ pub fn run() {
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
-
-            #[cfg(target_os = "linux")]
-            std::env::set_var("GST_PLUGIN_PATH", "/usr/lib/x86_64-linux-gnu/gstreamer-1.0");
 
             #[cfg(target_os = "windows")]
             std::env::set_var("GST_PLUGIN_PATH", "C:\\gstreamer\\1.0\\msvc_x86_64\\bin");

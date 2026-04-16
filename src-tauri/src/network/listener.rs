@@ -176,12 +176,7 @@ pub async fn run_listener(
                     app_handle.emit( "control-mode-update", &msg);
                 }
             }
-            Payload::MissionCommand(msg) => {
-                if t.mission_command.ready() {
-                    app_handle.emit( "mission-command-update", &msg);
-                }
-            }
-            Payload::DetectedObjects(msg) => {
+            Payload::DetectedObject(msg) => {
                 if t.detected_objects.ready() {
                     app_handle.emit( "detected-objects-update", &msg);
                 }
