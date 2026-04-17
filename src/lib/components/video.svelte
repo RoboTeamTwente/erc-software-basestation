@@ -1,13 +1,9 @@
 <script lang="ts">
-// ----- EXTERNAL / TAURI -----
     import { invoke } from "@tauri-apps/api/core";
-
-// ----- SVELTE -----
     import { onMount } from "svelte";
-
-
-// ----- STYLES -----
     import '../../global.css';
+    import { detectedObjectsState } from "../state/detectedObjects.svelte";
+    import { detectedObjectTypeToJSON } from "../proto/components/basestation/detected_object";
 
     type Props = {
         camera: any;
@@ -19,163 +15,183 @@
     let imgElement: HTMLImageElement;
     let canvasElement: HTMLCanvasElement;
 
-    let lastClick: {x:number,y:number, cam: string}|null = null;
-    let points: {x:number,y:number}[] = [];
+    let lastClick: { x: number; y: number; cam: string } | null = null;
+    let points: { x: number; y: number }[] = [];
 
-
-// ----- DRAW POINTS -----
-    async function drawPoints() {
+    // ----- DRAW: unified draw call -----
+    function draw() {
         if (!canvasElement) return;
-
         const ctx = canvasElement.getContext("2d");
         if (!ctx) return;
 
-        ctx.clearRect(0,0,canvasElement.width,canvasElement.height);
+        ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
 
-        // draw points
+        if (mode === 'detect') {
+            drawBoundingBoxes(ctx);
+        } else {
+            drawMeasurePoints(ctx);
+        }
+    }
+
+    // ----- BOUNDING BOXES -----
+    function drawBoundingBoxes(ctx: CanvasRenderingContext2D) {
+        // We need the actual rendered image dimensions (accounting for object-fit letterboxing)
+        const rect      = imgElement.getBoundingClientRect();
+        const imgRatio  = imgElement.naturalWidth / imgElement.naturalHeight;
+        const rectRatio = rect.width / rect.height;
+
+        let displayWidth: number, displayHeight: number;
+        let offsetX = 0, offsetY = 0;
+
+        if (rectRatio > imgRatio) {
+            displayHeight = rect.height;
+            displayWidth  = rect.height * imgRatio;
+            offsetX       = (rect.width - displayWidth) / 2;
+        } else {
+            displayWidth  = rect.width;
+            displayHeight = rect.width / imgRatio;
+            offsetY       = (rect.height - displayHeight) / 2;
+        }
+
+        for (const obj of detectedObjectsState.objects) {
+            const { bbox, type, id, confidence } = obj.data;
+            if (!bbox) continue;
+
+            // BoundingBox coords are normalized 0-1000 (x, y, width, height)
+            const x = offsetX + ((bbox.x ?? 0) / 1000) * displayWidth;
+            const y = offsetY + ((bbox.y ?? 0) / 1000) * displayHeight;
+            const w =           ((bbox.width  ?? 0) / 1000) * displayWidth;
+            const h =           ((bbox.height ?? 0) / 1000) * displayHeight;
+
+            // Box
+            ctx.strokeStyle = obj.actions.complete ? "#00ff88" : "#ff4444";
+            ctx.lineWidth   = 2;
+            ctx.strokeRect(x, y, w, h);
+
+            // Label background
+            const label = `${detectedObjectTypeToJSON(type ?? 0).replace("OBJECT_", "")}  ${((confidence ?? 0) * 100).toFixed(0)}%`;
+            ctx.font = "bold 12px monospace";
+            const textW = ctx.measureText(label).width;
+            ctx.fillStyle = obj.actions.complete ? "#00ff88cc" : "#ff4444cc";
+            ctx.fillRect(x, y - 18, textW + 8, 18);
+
+            // Label text
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(label, x + 4, y - 4);
+        }
+    }
+
+    // ----- MEASURE POINTS (unchanged logic, extracted) -----
+    function drawMeasurePoints(ctx: CanvasRenderingContext2D) {
         for (const p of points) {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+            ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
             ctx.fillStyle = "red";
             ctx.fill();
         }
-
-        // draw line if two points
         if (points.length === 2) {
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
             ctx.lineTo(points[1].x, points[1].y);
-            ctx.lineWidth = 2;
+            ctx.lineWidth   = 2;
             ctx.strokeStyle = "red";
             ctx.stroke();
         }
     }
 
+    // ----- REACTIVE: redraw whenever detected objects change in detect mode -----
+    $effect(() => {
+        if (mode === 'detect') {
+            // touch the reactive list so $effect re-runs on updates
+            detectedObjectsState.objects;
+            draw();
+        }
+    });
 
-// ----- SELECT PIXEL -----
+    // ----- CANVAS RESIZE -----
     async function resizeCanvas() {
         if (!imgElement || !canvasElement) return;
-
-        const rect = imgElement.getBoundingClientRect();
-        canvasElement.width = rect.width;
+        const rect         = imgElement.getBoundingClientRect();
+        canvasElement.width  = rect.width;
         canvasElement.height = rect.height;
-
-        drawPoints();
+        draw();
     }
 
+    // ----- CLICK HANDLER (pick / measure unchanged) -----
     async function handleClick(event: MouseEvent) {
-
-        const rect = imgElement.getBoundingClientRect();
-
-        const clickX = event.clientX - rect.left;
-        const clickY = event.clientY - rect.top;
-
-        const imgRatio = imgElement.naturalWidth / imgElement.naturalHeight;
+        const rect      = imgElement.getBoundingClientRect();
+        const clickX    = event.clientX - rect.left;
+        const clickY    = event.clientY - rect.top;
+        const imgRatio  = imgElement.naturalWidth / imgElement.naturalHeight;
         const rectRatio = rect.width / rect.height;
 
-        let displayWidth;
-        let displayHeight;
-        let offsetX = 0;
-        let offsetY = 0;
-        let coordX;
-        let coordY;
+        let displayWidth: number, displayHeight: number;
+        let offsetX = 0, offsetY = 0;
 
         if (rectRatio > imgRatio) {
-            // vertical bars (image height fits)
             displayHeight = rect.height;
-            displayWidth = rect.height * imgRatio;
-            offsetX = (rect.width - displayWidth) / 2;
+            displayWidth  = rect.height * imgRatio;
+            offsetX       = (rect.width - displayWidth) / 2;
         } else {
-            // horizontal bars (image width fits)
-            displayWidth = rect.width;
+            displayWidth  = rect.width;
             displayHeight = rect.width / imgRatio;
-            offsetY = (rect.height - displayHeight) / 2;
+            offsetY       = (rect.height - displayHeight) / 2;
         }
 
-        const x = clickX - offsetX;
-        const y = clickY - offsetY;
-
-        // change clicks outside the actual image
-        if (x < 0){
-            coordX = 0;
-        } else if (x > displayWidth){
-            coordX = displayWidth;
-        } else {
-            coordX = x;
-        }
-
-        if (y < 0){
-            coordY = 0;
-        } else if (y > displayHeight){
-            coordY = displayHeight;
-        } else {
-            coordY = y;
-        }
-
-        const nx = coordX / displayWidth;
-        const ny = coordY / displayHeight;
-
-        // canvas coordinates for drawing
-        const canvasX = offsetX + coordX;
-        const canvasY = offsetY + coordY;
+        const x      = Math.max(0, Math.min(clickX - offsetX, displayWidth));
+        const y      = Math.max(0, Math.min(clickY - offsetY, displayHeight));
+        const nx     = x / displayWidth;
+        const ny     = y / displayHeight;
+        const canvasX = offsetX + x;
+        const canvasY = offsetY + y;
 
         if (mode === 'pick') {
-            await invoke("send_pixel", {
-                camera: camera.name,
-                x: nx,
-                y: ny,
-            });
-            return;
+            await invoke("send_pixel", { camera: camera.name, x: nx, y: ny });
         } else if (mode === 'measure') {
+            if (points.length === 2) points = [];
+            points.push({ x: canvasX, y: canvasY });
+            draw();
 
-            if (points.length === 2) {
-                points = [];
-            }
-
-            points.push({x: canvasX, y: canvasY});
-            drawPoints();
-
-            if (lastClick != null && lastClick.cam === camera.name) {
+            if (lastClick !== null && lastClick.cam === camera.name) {
                 const result = await invoke<number>("request_measurement", {
-                    camera1: camera.name,
-                    x1: nx,
-                    y1: ny,
-                    camera2: lastClick.cam,
-                    x2: lastClick.x,
-                    y2: lastClick.y,
+                    camera1: camera.name, x1: nx, y1: ny,
+                    camera2: lastClick.cam, x2: lastClick.x, y2: lastClick.y,
                 });
-
                 onmeasurement?.(result);
-                
                 lastClick = null;
+            } else {
+                lastClick = { x: nx, y: ny, cam: camera.name };
             }
-
-            lastClick = {x: nx, y: ny, cam: camera.name};
-
-        } else {
-            return;
         }
     }
 
-
-// ----- DETECT OBJECTS -----
-
-
-
-// ===============================
-// LIFECYCLE
-// ===============================
-    onMount(()=>{
+    onMount(() => {
         resizeCanvas();
-        window.addEventListener("resize",resizeCanvas);
+        window.addEventListener("resize", resizeCanvas);
+        return () => window.removeEventListener("resize", resizeCanvas);
     });
 </script>
 
 <div class="frame">
-    <h1 class="heading"> {camera.name} </h1>
-    <img class="video-img" bind:this={imgElement} src={camera.port} alt="Live video stream at {camera.name}" onload={resizeCanvas}/>
+    <h1 class="heading">{camera.name}</h1>
+    <img
+        class="video-img"
+        bind:this={imgElement}
+        src={camera.port}
+        alt="Live video stream at {camera.name}"
+        onload={resizeCanvas}
+    />
     {#if mode === 'pick' || mode === 'measure'}
-        <canvas bind:this={canvasElement} onclick={handleClick} style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair; border: 2px solid #; z-index: 101;"></canvas>
+        <canvas
+            bind:this={canvasElement}
+            onclick={handleClick}
+            style="position:absolute; top:0; left:0; width:100%; height:100%; cursor:crosshair; z-index:101;"
+        ></canvas>
+    {:else if mode === 'detect'}
+        <canvas
+            bind:this={canvasElement}
+            style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:101;"
+        ></canvas>
     {/if}
     {#if camera.stale}
         <div class="stale-overlay">

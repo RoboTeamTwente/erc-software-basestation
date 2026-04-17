@@ -1,47 +1,8 @@
 <script lang="ts">
     import { listen } from '@tauri-apps/api/event';
     import { onMount } from "svelte";
-    import {
-        BasestationDetectedObject,
-        detectedObjectTypeToJSON
-    } from "../proto/components/basestation/detected_object";
-
-    type TrackedState = {
-        complete: boolean;
-    };
-
-    type TrackedObject = {
-        data: BasestationDetectedObject;
-        actions: TrackedState;
-    };
-
-    // live objects only (can disappear)
-    let objectsMap = new Map<number, BasestationDetectedObject>();
-    let lastSeen = new Map<number, number>();
-
-    // persistent state (never deleted unless you explicitly want to reset it)
-    let trackedMap = new Map<number, TrackedState>();
-
-    let objects: TrackedObject[] = [];
-
-    function syncObjects() {
-        objects = Array.from(objectsMap.entries()).map(([id, data]) => {
-            return {
-                data,
-                actions: trackedMap.get(id) ?? { complete: false }
-            };
-        });
-    }
-
-    function pruneOld(currentFrame: number) {
-        for (const [id, lastFrame] of lastSeen.entries()) {
-            if (currentFrame - lastFrame > 5) {
-                lastSeen.delete(id);
-                objectsMap.delete(id);
-                // NOTE: trackedMap is NOT deleted
-            }
-        }
-    }
+    import { BasestationDetectedObject, detectedObjectTypeToJSON } from "../proto/components/basestation/detected_object";
+    import { detectedObjectsState, handleDetectedObject } from "../state/detectedObjects.svelte";
 
     function formatType(type: number | undefined) {
         const raw = detectedObjectTypeToJSON(type ?? 0);
@@ -51,30 +12,9 @@
     onMount(() => {
         const unlisten = listen("detected-objects-update", (event) => {
             const obj = BasestationDetectedObject.fromJSON(event.payload);
-
-            if (obj.id === undefined || obj.frame_id === undefined) return;
-
-            const id = obj.id;
-            const frame = obj.frame_id;
-
-            // update live object
-            objectsMap.set(id, obj);
-            lastSeen.set(id, frame);
-
-            // ensure persistent tracking exists
-            if (!trackedMap.has(id)) {
-                trackedMap.set(id, {
-                    complete: false
-                });
-            }
-
-            pruneOld(frame);
-            syncObjects();
+            handleDetectedObject(obj);
         });
-
-        return () => {
-            unlisten.then((f) => f());
-        };
+        return () => { unlisten.then((f) => f()); };
     });
 </script>
 
@@ -89,7 +29,7 @@
         <div class="grid-item">
             <div class="task-list">
 
-                {#each objects as obj (obj.data.id)}
+                {#each detectedObjectsState.objects as obj (obj.data.id)}
                     <div class="task-card">
 
                         <div class="task-info">
