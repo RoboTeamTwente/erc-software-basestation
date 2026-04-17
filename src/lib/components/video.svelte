@@ -2,16 +2,16 @@
 // ----- EXTERNAL / TAURI -----
     import { invoke } from "@tauri-apps/api/core";
 
-
 // ----- SVELTE -----
     import { onMount } from "svelte";
 
 
 // ----- STYLES -----
     import '../../global.css';
+
     type Props = {
         camera: any;
-        mode?: 'pick' | 'measure' | null;
+        mode?: 'pick' | 'measure' | 'detect' | null;
         onmeasurement?: (result: number) => void;
     }
     let { camera, mode, onmeasurement }: Props = $props();
@@ -21,7 +21,6 @@
 
     let lastClick: {x:number,y:number, cam: string}|null = null;
     let points: {x:number,y:number}[] = [];
-
 
 
 // ----- DRAW POINTS -----
@@ -157,6 +156,10 @@
             return;
         }
     }
+
+
+// ----- DETECT OBJECTS -----
+
 
 
 // ===============================

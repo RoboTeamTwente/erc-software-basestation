@@ -5,6 +5,8 @@ use std::{
     time::Duration,
 };
 
+use once_cell::sync::Lazy;
+use rand::RngExt;
 use prost::Message;
 use tokio::{
     net::UdpSocket,
@@ -14,6 +16,33 @@ use tokio::{
 
 use crate::proto::packets::*;
 
+struct SimObject {
+    id: u32,
+    obj_type: DetectedObjectType,
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    vx: f32,
+    vy: f32,
+    confidence: f32,
+}
+
+struct SimState {
+    pool: [SimObject; 12],       // All 12 objects, always alive
+    visible: Vec<usize>,         // Indices into pool that are currently "detected"
+    current_index: usize,        // Which visible object we're emitting next
+    frame_id: u32,
+}
+
+static STATE: Lazy<Mutex<SimState>> = Lazy::new(|| {
+    Mutex::new(SimState {
+        pool: std::array::from_fn(|i| make_object(i as u32)),
+        visible: Vec::new(),
+        current_index: 0,
+        frame_id: 0,
+    })
+});
 
 // CONFIG
 #[derive(Clone)]
@@ -64,7 +93,7 @@ pub fn stream_table() -> Vec<StreamSpec> {
         StreamSpec { interval: Duration::from_millis(50),  generator: gen_drive_motor },
         StreamSpec { interval: Duration::from_millis(100), generator: gen_drive_progress },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_sensor_diag },
-        StreamSpec { interval: Duration::from_millis(2000), generator: gen_detected_objects },
+        StreamSpec { interval: Duration::from_millis(50), generator: gen_detected_objects },
     ]
 }
 
@@ -267,67 +296,81 @@ fn gen_sensor_diag(t: f32) -> pb_envelope::Payload {
 }
 
 fn gen_detected_objects(t: f32) -> pb_envelope::Payload {
-    // Cycle through a few different "frames" so the UI updates visibly
-    let frame_id = (t / 2.0) as u32;
- 
-    // Rotate through different object layouts every few seconds
-    let scenario = (frame_id % 4) as usize;
- 
-    let layouts: &[&[(DetectedObjectType, u32, u32, u32, u32, f32)]] = &[
-        // scenario 0: main switch + two buttons
-        &[
-            (DetectedObjectType::ObjectMainSwitch, 120, 80,  160, 60,  0.94),
-            (DetectedObjectType::ObjectButton,     310, 200, 60,  60,  0.87),
-            (DetectedObjectType::ObjectButton,     400, 200, 60,  60,  0.82),
-        ],
-        // scenario 1: rotary switch + socket + cable
-        &[
-            (DetectedObjectType::ObjectRotarySwitch, 200, 150, 80,  80,  0.91),
-            (DetectedObjectType::ObjectSocket,        350, 120, 70,  70,  0.88),
-            (DetectedObjectType::ObjectCable,         450, 300, 120, 30,  0.76),
-        ],
-        // scenario 2: electromagnet + plate
-        &[
-            (DetectedObjectType::ObjectElectromagnet, 160, 100, 100, 100, 0.85),
-            (DetectedObjectType::ObjectPlate,         320, 250, 180, 80,  0.79),
-        ],
-        // scenario 3: full panel — all types
-        &[
-            (DetectedObjectType::ObjectMainSwitch,    60,  60,  120, 50,  0.96),
-            (DetectedObjectType::ObjectSwitch,        220, 55,  60,  55,  0.90),
-            (DetectedObjectType::ObjectRotarySwitch,  330, 50,  80,  80,  0.88),
-            (DetectedObjectType::ObjectButton,        440, 60,  55,  55,  0.83),
-            (DetectedObjectType::ObjectSocket,        120, 200, 70,  70,  0.81),
-            (DetectedObjectType::ObjectElectromagnet, 250, 190, 90,  90,  0.78),
-            (DetectedObjectType::ObjectCable,         370, 250, 130, 30,  0.72),
-        ],
-    ];
- 
-    let objects = layouts[scenario];
-    let total = objects.len() as u32;
- 
-    // We emit only the FIRST object here; real code would emit one message per object.
-    // For the simulator we emit index 0 with total_count set so the frontend
-    // knows to expect more, then subsequent ticks deliver higher indices.
-    // Simpler approach for a dummy: encode all objects in index=0 by abusing
-    // index cycling via the fractional part of t.
-    let idx = ((t * 5.0) as u32) % total; // rotate through indices quickly
-    let (obj_type, x, y, w, h, conf) = objects[idx as usize];
- 
-    pb_envelope::Payload::DetectedObject(BasestationDetectedObject {
-        frame_id,
+    let mut state = STATE.lock().unwrap();
+    let mut rng = rand::rng();
+
+    // Start a new frame once we've emitted all visible objects
+    if state.current_index >= state.visible.len() {
+        state.frame_id += 1;
+        state.current_index = 0;
+
+        // Pick how many objects are visible this frame: 1–6
+        let count = rng.random_range(1..=6);
+
+        // Shuffle indices 0..12 and take `count` of them
+        let mut indices: Vec<usize> = (0..12).collect();
+        // Fisher-Yates partial shuffle (only need `count` elements)
+        for i in 0..count {
+            let j = rng.random_range(i..12);
+            indices.swap(i, j);
+        }
+        state.visible = indices[..count].to_vec();
+        state.visible.sort(); // optional: emit in ID order for tidiness
+
+        // Collect indices to release the borrow on state.visible
+        let visible_indices: Vec<usize> = state.visible.clone();
+
+        // Update physics for all visible objects
+        for vi in visible_indices {
+            let obj = &mut state.pool[vi];
+            obj.x = (obj.x + obj.vx).clamp(0.0, 1.0);
+            obj.y = (obj.y + obj.vy).clamp(0.0, 1.0);
+            // Bounce off edges
+            if obj.x <= 0.0 || obj.x >= 1.0 { obj.vx = -obj.vx; }
+            if obj.y <= 0.0 || obj.y >= 1.0 { obj.vy = -obj.vy; }
+            let wobble = (t * 1.37 + obj.id as f32).sin() * 0.01;
+            obj.confidence = (obj.confidence + wobble).clamp(0.5, 0.99);
+        }
+    }
+
+    let total = state.visible.len() as u32;
+
+    if total == 0 {
+        return pb_envelope::Payload::DetectedObject(BasestationDetectedObject {
+            frame_id: state.frame_id,
+            total_count: 0,
+            index: 0,
+            id: 0,
+            r#type: DetectedObjectType::ObjectUnknown as i32,
+            bbox: None,
+            confidence: 0.0,
+        });
+    }
+
+    let idx = state.current_index;
+    let pool_idx = state.visible[idx];
+    let obj = &state.pool[pool_idx];
+
+    let payload = pb_envelope::Payload::DetectedObject(BasestationDetectedObject {
+        frame_id: state.frame_id,
         total_count: total,
-        index: idx,
-        id: idx + frame_id * 10,
-        r#type: obj_type as i32,
+        index: idx as u32,
+        id: obj.id,
+        r#type: obj.obj_type as i32,
         bbox: Some(BoundingBox {
-            x: x + ((t * 0.7).sin() * 5.0) as u32,  // slight jitter
-            y: y + ((t * 0.5).cos() * 3.0) as u32,
-            width: w,
-            height: h,
+            // bbox is normalized 0–1, cast to u32 loses everything — 
+            // multiply by image dims if your receiver expects pixel coords,
+            // or change the proto to float. Using *1000 as a fixed-point here:
+            x: (obj.x * 1000.0) as u32,
+            y: (obj.y * 1000.0) as u32,
+            width: (obj.w * 1000.0) as u32,
+            height: (obj.h * 1000.0) as u32,
         }),
-        confidence: conf - ((t * 0.3).sin().abs() * 0.05), // slight confidence wobble
-    })
+        confidence: obj.confidence,
+    });
+
+    state.current_index += 1;
+    payload
 }
 
 // HELPER FUNCTIONS
@@ -344,6 +387,42 @@ fn dummy_motor(id: i32, t: f32, freq: f32) -> MotorInformation {
     }
 }
 
+// Initialize one object per fixed ID — positions/velocities derived from ID
+// so they're deterministic but varied
+fn make_object(id: u32) -> SimObject {
+    // Spread initial positions across the normalized space
+    let x = (id as f32 * 0.083) % 1.0;          // ~evenly spread 0..1
+    let y = (id as f32 * 0.137 + 0.05) % 1.0;
+
+    // Small random-feeling velocities based on ID
+    let vx = ((id * 7 + 1) % 9) as f32 * 0.001 - 0.004;
+    let vy = ((id * 13 + 3) % 9) as f32 * 0.001 - 0.004;
+
+    // Cycle through the meaningful object types (skip UNKNOWN = 0)
+    let types = [
+        DetectedObjectType::ObjectMainSwitch,
+        DetectedObjectType::ObjectButton,
+        DetectedObjectType::ObjectSwitch,
+        DetectedObjectType::ObjectRotarySwitch,
+        DetectedObjectType::ObjectSocket,
+        DetectedObjectType::ObjectElectromagnet,
+        DetectedObjectType::ObjectPlate,
+        DetectedObjectType::ObjectCable,
+    ];
+    let obj_type = types[id as usize % types.len()];
+
+    SimObject {
+        id,
+        obj_type,
+        x,
+        y,
+        w: 0.05 + (id % 5) as f32 * 0.01,   // widths ~0.05–0.09
+        h: 0.05 + (id % 7) as f32 * 0.01,   // heights ~0.05–0.11
+        vx,
+        vy,
+        confidence: 0.70 + (id % 12) as f32 * 0.02,
+    }
+}
 
 // ASYNG SIMULATOR
 

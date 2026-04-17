@@ -23,7 +23,7 @@
         </div>
         </div>
         <div class="grid-item" style="padding-right: 0">
-        <Video camera={depthCamera}/>
+        <Video camera={depthCamera} mode="detect"/>
         </div>
         <div class="grid-item">
         <div class="container">

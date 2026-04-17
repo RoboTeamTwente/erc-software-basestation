@@ -172,7 +172,9 @@ fn main() -> Result<()> {
     // This means SensorBoardImuInfo (and all others) can be emitted directly
     // via tauri without any manual wrapper struct.
     let mut config = prost_build::Config::new();
+
     config.type_attribute(".", "#[derive(serde::Serialize)]");
+
  
     config
         .compile_protos(
