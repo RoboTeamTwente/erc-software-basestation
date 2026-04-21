@@ -9,6 +9,7 @@ export type TrackedObject = {
 // Reactive shared state
 export const detectedObjectsState = $state({
     objects: [] as TrackedObject[],
+    hoveredId: null as number | null,
 });
 
 const objectsMap = new Map<number, BasestationDetectedObject>();

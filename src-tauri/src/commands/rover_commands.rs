@@ -1,3 +1,9 @@
+use serde::de;
+use tauri::State;
+use crate::network::sender;
+use crate::network::service::UdpService;
+use crate::proto::packets::*;
+
 
 #[tauri::command]
 pub async fn request_coordinates() -> Result<(i16, i16), i16> {
@@ -18,20 +24,56 @@ pub async fn request_weight() -> Result<i16, i16> {
 }
 
 #[tauri::command]
-pub async fn request_measurement(camera1: String, x1: f64, y1: f64, camera2: String, x2: f64, y2: f64) -> Result<i16, i16> {
-    println!("Requesting measurement from rover...");
-    // Simulate a delay for the request
-    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+pub async fn request_measurement(state: State<'_, UdpService>, camera1: String, x1: f64, y1: f64, camera2: String, x2: f64, y2: f64) -> Result<i16, i16> {
+    println!("Requested rock meassurement between: x1={}, y1={}, x2={}, y2={}", x1, y1, x2, y2);
+    let socket = state.socket();
+    let target = "127.0.0.1:9000";
+
+    let x1 = (x1 * 1000.0) as u32;
+    let y1 = (y1 * 1000.0) as u32;
+    let x2 = (x2 * 1000.0) as u32;
+    let y2 = (y2 * 1000.0) as u32;
+
+    // Build an envelope with the selected object ID (this is just an example, adjust as needed)
+    let envelope = PbEnvelope {
+        payload: Some(pb_envelope::Payload::RockMeasureRequest(
+            BasestationRockMeasureRequest { x1, y1, x2, y2 }
+        )),
+    };
+    
+    sender::send_envelope(&socket, target, envelope).await.map_err(|e| {
+        println!("Failed to send object selection: {}", e);
+    }).ok();
 
     println!("Received pixel data: camera1={}, x1={}, y1={}, camera2={}, x2={}, y2={}", camera1, x1, y1, camera2, x2, y2);
 
     // Return dummy measurement
-    Ok(17)
+    Ok(24)
 }
 
 #[tauri::command]
 pub async fn send_pixel(camera: String, x: f64, y: f64) -> Result<(), ()> {
     println!("Received pixel from frontend: camera={}, x={}, y={}", camera, x, y);
     // Here you would send the pixel information to the rover
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn select_object(state: State<'_, UdpService>, object_id: u32) -> Result<(), ()> {
+    println!("Object selected with ID: {}", object_id);
+    let socket = state.socket();
+    let target = "127.0.0.1:9000";
+
+    // Build an envelope with the selected object ID (this is just an example, adjust as needed)
+    let envelope = PbEnvelope {
+        payload: Some(pb_envelope::Payload::ObjectSelection(
+            BasestationObjectSelection { object_id }
+        )),
+    };
+    
+    sender::send_envelope(&socket, target, envelope).await.map_err(|e| {
+        println!("Failed to send object selection: {}", e);
+    }).ok();
+
     Ok(())
 }

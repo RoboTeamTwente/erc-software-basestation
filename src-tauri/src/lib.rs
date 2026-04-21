@@ -38,6 +38,7 @@ pub fn run() {
             commands::rover_commands::request_weight,
             commands::rover_commands::request_measurement,
             commands::rover_commands::send_pixel,
+            commands::rover_commands::select_object,
             commands::network::send_ping_cmd,
             commands::network::start_dummy_imu_stream,
             commands::network::start_dummy_streams,

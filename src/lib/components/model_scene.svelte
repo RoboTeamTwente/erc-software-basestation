@@ -2,7 +2,7 @@
     import { Canvas } from '@threlte/core'
     import * as THREE from 'three'
     import { onMount } from 'svelte'
-    import { setLoadFailed, wasLoadFailed } from './model_debug'
+    import { setLoadFailed, wasLoadFailed } from '../state/model_debug'
     import ModelViewer from './model_viewer.svelte'
 
     const { modelPath = 'models/chibiRover.glb' }: { modelPath?: string } = $props()

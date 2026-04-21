@@ -140,6 +140,10 @@
     box-sizing: border-box;
 }
 
+.task-card.hovered {
+    background-color: var(--color-purple-light);;
+}
+
 .task-card:hover {
     background-color: var(--color-purple-light);;
 }

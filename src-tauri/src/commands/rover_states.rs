@@ -67,3 +67,24 @@ pub async fn get_state(
 
     Ok(value)
 }
+
+// async fn sync_with_rover(state: State<'_, UdpService>, ) {
+
+//     println!("Synced mode with rover: {}", );
+//     let socket = state.socket();
+//     let target = "127.0.0.1:9000";
+
+//     // Build an envelope with the selected object ID (this is just an example, adjust as needed)
+//     let envelope = PbEnvelope {
+//         payload: Some(pb_envelope::Payload::ObjectSelection(
+//             BasestationObjectSelection { object_id }
+//         )),
+//     };
+    
+//     sender::send_envelope(&socket, target, envelope).await.map_err(|e| {
+//         println!("Failed to send object selection: {}", e);
+//     }).ok();
+
+//     println!("Synced with rover");
+//     Ok(())
+// }

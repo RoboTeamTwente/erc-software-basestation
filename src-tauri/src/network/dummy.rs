@@ -387,8 +387,6 @@ fn dummy_motor(id: i32, t: f32, freq: f32) -> MotorInformation {
     }
 }
 
-// Initialize one object per fixed ID — positions/velocities derived from ID
-// so they're deterministic but varied
 fn make_object(id: u32) -> SimObject {
     // Spread initial positions across the normalized space
     let x = (id as f32 * 0.083) % 1.0;          // ~evenly spread 0..1
