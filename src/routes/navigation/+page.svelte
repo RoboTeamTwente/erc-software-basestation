@@ -9,7 +9,6 @@
     import NavigationPlan from '$lib/components/navigation_plan.svelte';
     import Costmap from '$lib/components/costmap.svelte';
     import IMU from '$lib/components/imu.svelte';
-    import { depthCamera, frontCamera } from "../../state.svelte";
 
     
 </script>
@@ -33,7 +32,7 @@
     </div>
 
     <div class="grid-item" style="padding-right: 0">
-        <DoubleVideo camera1={depthCamera} camera2={frontCamera} />
+        <DoubleVideo/>
     </div>
 
     <div class="grid-item">

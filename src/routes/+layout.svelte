@@ -127,6 +127,11 @@
     async function getPickupMode() {
         pickupMode = await invoke("get_state", {stateType: "Pickup"})
     }
+    async function togglePickup() {
+        pickupMode = !pickupMode;
+        await invoke("set_state", {stateType: "Pickup", value: pickupMode});
+        
+    }
 
     $effect(() => {
         const interval = setInterval(getPickupMode, 250);
@@ -358,13 +363,13 @@
     </div>
 
     <!-- Centered icon -->
-    <div class="center-icons">
+    <button class="center-icons" type="button" style="background: none; border: none; cursor: pointer;" onclick={togglePickup} aria-label="Toggle pickup mode">
         {#if pickupMode}
             <img src="/arm.svg" alt="Arm mode icon" class="mode-icon"/>
         {:else}
             <img src="/driving.svg" alt="Driving mode icon" class="mode-icon"/>
         {/if}
-    </div>
+    </button>
 
     <!-- Right-aligned icons and controls -->
     <div class="right-icons">

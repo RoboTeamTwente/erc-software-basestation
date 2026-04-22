@@ -1,25 +1,28 @@
 <script lang="ts">
-// ----- STYLES -----
-    let { camera1, camera2 } = $props();
-
+import { invoke } from '@tauri-apps/api/core';
+import { depthCamera, frontCamera, armCamera } from '../../state.svelte';
 
 // ----- STATES -----
-    let activeCam = $state(camera1);
-    let secondaryCam = $state(camera2);
+let pickupMode = $state(false);
+let swapped = $state(false);
 
+let modeCam = $derived(pickupMode ? armCamera : frontCamera);
 
-    // React when parent props change
-    $effect(() => { activeCam = camera1; secondaryCam = camera2; });
+let activeCam = $derived(swapped ? modeCam : depthCamera);
+let secondaryCam = $derived(swapped ? depthCamera : modeCam);
 
-    $effect(() => {secondaryCam = camera2;});
+$effect(() => {
+    const interval = setInterval(getPickupMode, 250);
+    return () => clearInterval(interval);
+});
 
+async function getPickupMode() {
+    pickupMode = await invoke("get_state", { stateType: "Pickup" });
+}
 
-// ------ CAMERA LOGIC -----
-    async function toggleVideo(){
-        let temp = activeCam;
-        activeCam = secondaryCam
-        secondaryCam = temp;
-    }
+function toggleVideo() {
+    swapped = !swapped;
+}
 </script>
 
 <div class="frame">

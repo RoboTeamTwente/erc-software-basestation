@@ -2,8 +2,8 @@
     import { invoke } from '@tauri-apps/api/core';
     import { listen } from '@tauri-apps/api/event';
     import { onMount } from "svelte";
-    import { BasestationDetectedObject, detectedObjectTypeToJSON } from "../proto/components/basestation/detected_object";
-    import { detectedObjectsState, handleDetectedObject } from "../state/detectedObjects.svelte";
+    import { BasestationDetectedObject, detectedObjectTypeToJSON } from "$lib/proto/components/basestation/detected_object";
+    import { detectedObjectsState, handleDetectedObject } from "$lib/state/detectedObjects.svelte";
 
     function formatType(type: number | undefined) {
         const raw = detectedObjectTypeToJSON(type ?? 0);

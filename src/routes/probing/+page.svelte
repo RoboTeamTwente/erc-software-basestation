@@ -25,26 +25,18 @@
 // ----- ROVER MODES LOGIC -----
     async function togglePickup() {
         pickupMode = !pickupMode;
-        setCameras();
         await invoke("set_state", {stateType: "Pickup", value: pickupMode});
     }
     async function getPickupMode() {
         pickupMode = await invoke("get_state", {stateType: "Pickup"});
     }
-    function setCameras(){
-        if (pickupMode){
-            cam1 = armCamera;
-        } else {
-            cam1 = depthCamera;
-        }
-    }
+
 
 // ===============================
 // LIFECYCLE
 // ===============================
     onMount(async () => {
         await getPickupMode();
-        setCameras();
     });
 
 </script>
@@ -64,7 +56,7 @@
     </div>
 
     <div class="grid-item" style="padding-right: 0">
-        <DoubleVideo camera1={cam1} camera2={cam2} />
+        <DoubleVideo/>
     </div>
 
     <div class="grid-nest" style="grid-template-columns: 1fr 2fr; padding-left: 0">

@@ -2,8 +2,8 @@
     import { invoke } from "@tauri-apps/api/core";
     import { onMount } from "svelte";
     import '../../global.css';
-    import { detectedObjectsState } from "../state/detectedObjects.svelte";
-    import { detectedObjectTypeToJSON } from "../proto/components/basestation/detected_object";
+    import { detectedObjectsState } from "$lib/state/detectedObjects.svelte";
+    import { detectedObjectTypeToJSON } from "$lib/proto/components/basestation/detected_object";
 
     type Props = {
         camera: any;

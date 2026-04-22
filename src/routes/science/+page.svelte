@@ -10,31 +10,18 @@
     import Map from '$lib/components/map.svelte';
     import SamplingLocations from '$lib/components/sampling_locations.svelte';
 
-// ----- IMPORTS ------
-    import { depthCamera, frontCamera, armCamera } from '../../state.svelte';
-
 
 // ----- STATES -----
     let pickupMode = $state(false);
-    let cam1 = $state(depthCamera);
-    let cam2 = frontCamera;
 
 
 // ----- ROVER MODES LOGIC -----
     async function togglePickup() {
         pickupMode = !pickupMode;
-        setCameras();
         await invoke("set_state", {stateType: "Pickup", value: pickupMode});
     }
     async function getPickupMode() {
         pickupMode = await invoke("get_state", {stateType: "Pickup"});
-    }
-    function setCameras(){
-        if (pickupMode){
-            cam1 = armCamera;
-        } else {
-            cam1 = depthCamera;
-        }
     }
 
 
@@ -44,7 +31,6 @@
 // ===============================
     onMount(async () => {
         await getPickupMode();
-        setCameras();
     });
 
 </script>
@@ -60,7 +46,7 @@
         </div>
         </div>
         <div class="grid-item" style="padding-right: 0">
-            <DoubleVideo camera1={cam1} camera2={cam2}/>
+            <DoubleVideo/>
         </div>
         <div class="grid-item" style="padding-left: 0">
         <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">

@@ -1,35 +1,40 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+    import { SensorState } from '$lib/proto/components/sensor_board/sensor';
+    import { type SensorBoardIMUInfo, IMUErrorCode, iMUErrorCodeToJSON } from '$lib/proto/components/sensor_board/imu_sensor';
 
 // ----- STYLE IMPORTS -----
     import '../../imu.css';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-    interface ImuPayload {
-        accel_x: number; accel_y: number; accel_z: number;
-        gyro_x:  number; gyro_y:  number; gyro_z:  number;
-        mag_x:   number; mag_y:   number; mag_z:   number;
-        is_calibrated: boolean;
-        state: number;
-        error_code: number;
-    }
-
+// ── Maps ───────────────────────────────────────────────────────────────────
     const SENSOR_STATE: Record<number, string> = {
-        0: 'Idle', 1: 'Operating', 2: 'Calibrating', 3: 'Error',
+        [SensorState.SENSOR_IDLE]:        'Idle',
+        [SensorState.SENSOR_OPERATING]:   'Operating',
+        [SensorState.SENSOR_CALIBRATING]: 'Calibrating',
+        [SensorState.SENSOR_ERROR]:       'Error',
     };
+
     const IMU_ERROR: Record<number, string> = {
-        0: 'No error',       1: 'Comm failure',  2: 'Cal required',
-        3: 'Cal failed',     4: 'Invalid data',  5: 'Sensor fault',
-        6: 'Gyro error',     7: 'Mag error',     8: 'Accel error',
+        [IMUErrorCode.IMU_NO_ERROR]:              'No error',
+        [IMUErrorCode.IMU_COMMUNICATION_FAILURE]: 'Comm failure',
+        [IMUErrorCode.IMU_CALIBRATION_REQUIRED]:  'Cal required',
+        [IMUErrorCode.IMU_CALIBRATION_FAILED]:    'Cal failed',
+        [IMUErrorCode.IMU_INVALID_DATA]:          'Invalid data',
+        [IMUErrorCode.IMU_SENSOR_FAULT]:          'Sensor fault',
+        [IMUErrorCode.IMU_GYROSCOPE_ERROR]:       'Gyro error',
+        [IMUErrorCode.IMU_MAGNETOMETER_ERROR]:    'Mag error',
+        [IMUErrorCode.IMU_ACCELEROMETER_ERROR]:   'Accel error',
     };
 
 // ── Reactive state ─────────────────────────────────────────────────────────
-    let imu: ImuPayload = {
+    let imu: SensorBoardIMUInfo = {
         accel_x: 0, accel_y: 0, accel_z: 0,
         gyro_x:  0, gyro_y:  0, gyro_z:  0,
         mag_x:   0, mag_y:   0, mag_z:   0,
-        is_calibrated: false, state: 0, error_code: 0,
+        is_calibrated: false,
+        state: SensorState.SENSOR_IDLE,
+        error_code: IMUErrorCode.IMU_NO_ERROR,
     };
 
     const HISTORY = 60;
@@ -55,7 +60,7 @@
     let compassCanvas: HTMLCanvasElement;
 
     // ── rAF batching ───────────────────────────────────────────────────────
-    let pending: ImuPayload | null = null;
+    let pending: SensorBoardIMUInfo | null = null;
     let rafId: number | null = null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -63,7 +68,7 @@
         series.forEach((s, i) => { s.data = [...s.data.slice(1), vals[i]]; });
     }
 
-    const fmt = (n: number) => n.toFixed(2);
+    const fmt = (n: number | undefined) => (n ?? 0).toFixed(2);
 
     function sparkPath(data: number[], w: number, h: number): string {
         let min = data[0], max = data[0];
@@ -96,14 +101,12 @@
         const cx = W / 2, cy = H / 2, r = W / 2 - 8;
         ctx.clearRect(0, 0, W, H);
 
-        // Outer ring
         ctx.beginPath();
         ctx.arc(cx, cy, r, 0, Math.PI * 2);
         ctx.strokeStyle = ringColor();
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Tick marks
         for (let i = 0; i < 36; i++) {
             const a = (i / 36) * Math.PI * 2 - Math.PI / 2;
             const r1 = i % 9 === 0 ? r - 10 : (i % 3 === 0 ? r - 7 : r - 4);
@@ -115,7 +118,6 @@
             ctx.stroke();
         }
 
-        // Cardinal labels
         const labelR = r - 18;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -126,7 +128,6 @@
             ctx.fillText(lbl, cx + Math.cos(a) * labelR, cy + Math.sin(a) * labelR);
         });
 
-        // Needle
         const headingRad = Math.atan2(my, mx);
         const nLen = r - 26;
         ctx.beginPath();
@@ -144,7 +145,6 @@
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Center dot
         ctx.beginPath();
         ctx.arc(cx, cy, 4, 0, Math.PI * 2);
         ctx.fillStyle = textColor();
@@ -160,19 +160,19 @@
             imu = pending;
             pending = null;
 
-            push(accelSeries, [imu.accel_x, imu.accel_y, imu.accel_z]);
-            push(gyroSeries,  [imu.gyro_x,  imu.gyro_y,  imu.gyro_z]);
+            push(accelSeries, [imu.accel_x ?? 0, imu.accel_y ?? 0, imu.accel_z ?? 0]);
+            push(gyroSeries,  [imu.gyro_x  ?? 0, imu.gyro_y  ?? 0, imu.gyro_z  ?? 0]);
             accelSeries = [...accelSeries];
             gyroSeries  = [...gyroSeries];
 
             const now = performance.now();
             const dt = lastTs ? (now - lastTs) / 1000 : 0.02;
             lastTs = now;
-            pitch = (pitch + imu.gyro_x * dt * 57.2958) % 360;
-            roll  = (roll  + imu.gyro_y * dt * 57.2958) % 360;
-            yaw   = (yaw   + imu.gyro_z * dt * 57.2958) % 360;
+            pitch = (pitch + (imu.gyro_x ?? 0) * dt * 57.2958) % 360;
+            roll  = (roll  + (imu.gyro_y ?? 0) * dt * 57.2958) % 360;
+            yaw   = (yaw   + (imu.gyro_z ?? 0) * dt * 57.2958) % 360;
 
-            drawCompass(imu.mag_x, imu.mag_y);
+            drawCompass(imu.mag_x ?? 0, imu.mag_y ?? 0);
         });
     }
 
@@ -180,7 +180,7 @@
 
 // ── Lifecycle ──────────────────────────────────────────────────────────────
     onMount(async () => {
-        unlisten = await listen<ImuPayload>('imu-update', ({ payload }) => {
+        unlisten = await listen<SensorBoardIMUInfo>('imu-update', ({ payload }) => {
             pending = payload;
             packetCount++;
             scheduleRender();
@@ -206,9 +206,9 @@
             <span class="pill" class:pill-ok={imu.is_calibrated} class:pill-warn={!imu.is_calibrated}>
                 {imu.is_calibrated ? '✓ Cal' : '! Uncal'}
             </span>
-            <span class="pill pill-neutral">{SENSOR_STATE[imu.state] ?? imu.state}</span>
-            {#if imu.error_code !== 0}
-                <span class="pill pill-err">{IMU_ERROR[imu.error_code] ?? imu.error_code}</span>
+            <span class="pill pill-neutral">{SENSOR_STATE[imu.state ?? 0] ?? imu.state}</span>
+            {#if (imu.error_code ?? 0) !== IMUErrorCode.IMU_NO_ERROR}
+                <span class="pill pill-err">{IMU_ERROR[imu.error_code ?? 0] ?? iMUErrorCodeToJSON(imu.error_code ?? IMUErrorCode.UNRECOGNIZED)}</span>
             {/if}
             <span class="pill pill-neutral hz">{hz} Hz</span>
         </div>
@@ -271,7 +271,7 @@
                         <div class="face face-left">L</div>
                         <div class="face face-right">R</div>
                         <div class="face face-top">T</div>
-                        <div class="face face-bottom">↓</div>
+                        <div class="face face-bottom">D</div>
                     </div>
                 </div>
                 <div class="euler">
