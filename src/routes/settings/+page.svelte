@@ -20,12 +20,7 @@
     async function pingUdp() {
         await invoke("send_ping_cmd");
     }
-    async function startDummyStream() {
-        await invoke("start_dummy_imu_stream");
-    }
-    async function stopDummyStream() {
-        await invoke("stop_dummy_imu_stream");
-    }
+
     async function pingGPS() {
         try {
             await invoke("send_ping_cmd", { packetType: 'gps' });
@@ -54,6 +49,14 @@
             console.error("stopGenDummy failed:", e);
         }
     }
+    async function startObjectDummy(){
+        try {
+            await invoke("start_detection_sim");
+        } catch (e) {
+            console.error("startObjectDummy failed:", e);
+        }
+    }
+
     async function whereIsTheModel() {
         const debug = await invoke('debug_resource_dir')
         console.log(debug)
@@ -170,20 +173,16 @@
         Ping PH
     </button>
 
-    <button class="button" style="margin: 10px;" onclick={() => startDummyStream()}>
-        Start dummy IMU stream
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => stopDummyStream()}>
-        Stop dummy IMU stream
-    </button>
-
     <button class="button" style="margin: 10px;" onclick={() => startGenDummy()}>
         Start dummy general stream
     </button>
 
     <button class="button" style="margin: 10px;" onclick={() => stopGenDummy()}>
         Stop dummy general stream
+    </button>
+
+    <button class="button" style="margin: 10px;" onclick={() => startObjectDummy()}>
+        Start dummy object stream
     </button>
 
     <button class="button" style="margin: 10px" onclick={() => whereIsTheModel()}>

@@ -4,15 +4,17 @@ use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
+use tokio_util::sync::CancellationToken;
 
 use once_cell::sync::Lazy;
 use rand::RngExt;
 use prost::Message;
 use tokio::{
     net::UdpSocket,
-    sync::mpsc,
+    sync::{mpsc},
     time::{Instant, sleep},
 };
+use std::io::{Write};
 
 use crate::proto::packets::*;
 
@@ -50,7 +52,6 @@ pub struct SimulatorConfig {
     pub jitter_ms: u64,
     pub packet_loss: f32, // 0.0 → 1.0
     pub record_path: Option<PathBuf>,
-    pub replay_path: Option<PathBuf>,
 }
 
 // Deterministic rng for dummy data
@@ -427,118 +428,91 @@ fn make_object(id: u32) -> SimObject {
 pub async fn run_simulator(
     socket: Arc<UdpSocket>,
     addr: String,
-    cancel: Arc<Mutex<bool>>,
+    token: CancellationToken,
     config: SimulatorConfig,
+    streams: Vec<StreamSpec>,  
 ) -> anyhow::Result<()> {
     let socket_addr = addr.to_socket_addrs()?.next().unwrap();
-
-    // Replay mode
-    if let Some(path) = config.replay_path.clone() {
-        return replay_loop(socket, socket_addr, cancel, path).await;
-    }
-
-    let streams = stream_table();
     let mut last_times: Vec<Instant> = streams.iter().map(|_| Instant::now()).collect();
-
     let mut t = 0.0f32;
     let mut last_global = Instant::now();
     let mut rng = Lcg::new(0xdeadbeef);
-
     let (tx, mut rx) = mpsc::channel::<Vec<u8>>(1024);
 
-    // Sender task (network simulation)
+    // Sender task
     let socket_clone = socket.clone();
     let cfg = config.clone();
     tokio::spawn(async move {
         while let Some(buf) = rx.recv().await {
-            // Packet loss
-            if rng.next_f32() < cfg.packet_loss {
-                continue;
-            }
-
-            // Jitter
+            if rng.next_f32() < cfg.packet_loss { continue; }
             let jitter = (rng.next_f32() * cfg.jitter_ms as f32) as u64;
             sleep(Duration::from_millis(jitter)).await;
-
             let _ = socket_clone.send_to(&buf, socket_addr).await;
         }
     });
 
-    // Recorder
     let mut recorder = config.record_path.map(|p| std::fs::File::create(p).unwrap());
 
     loop {
-        if *cancel.lock().unwrap() {
-            break;
-        }
+        tokio::select! {
+            biased;
+            _ = token.cancelled() => {
+                break;  // instant, no polling needed
+            }
+            _ = sleep(Duration::from_millis(1)) => {
+                let now = Instant::now();
+                let dt = now.duration_since(last_global).as_secs_f32();
+                last_global = now;
+                t += dt;
 
-        let now = Instant::now();
-        let dt = now.duration_since(last_global).as_secs_f32();
-        last_global = now;
-        t += dt;
-
-        for (i, spec) in streams.iter().enumerate() {
-            if now.duration_since(last_times[i]) >= spec.interval {
-                last_times[i] = now;
-
-                let payload = (spec.generator)(t);
-
-                let envelope = PbEnvelope {
-                    payload: Some(payload),
-                };
-
-                let mut buf = Vec::new();
-                if envelope.encode(&mut buf).is_ok() {
-
-                    // Record
-                    if let Some(file) = recorder.as_mut() {
-                        let len = (buf.len() as u32).to_le_bytes();
-                        let _ = file.write_all(&len);
-                        let _ = file.write_all(&buf);
+                for (i, spec) in streams.iter().enumerate() {
+                    if now.duration_since(last_times[i]) >= spec.interval {
+                        last_times[i] = now;
+                        let payload = (spec.generator)(t);
+                        let envelope = PbEnvelope { payload: Some(payload) };
+                        let mut buf = Vec::new();
+                        if envelope.encode(&mut buf).is_ok() {
+                            if let Some(file) = recorder.as_mut() {
+                                let _ = file.write_all(&(buf.len() as u32).to_le_bytes());
+                                let _ = file.write_all(&buf);
+                            }
+                            let _ = tx.try_send(buf);
+                        }
                     }
-
-                    let _ = tx.send(buf).await;
                 }
             }
         }
-
-        sleep(Duration::from_millis(1)).await;
     }
-
     Ok(())
 }
 
-// REPLAY MODE
-use std::io::{Read, Write};
 
-async fn replay_loop(
-    socket: Arc<UdpSocket>,
-    addr: std::net::SocketAddr,
-    cancel: Arc<Mutex<bool>>,
-    path: PathBuf,
-) -> anyhow::Result<()> {
-    let mut file = std::fs::File::open(path)?;
+pub fn spawn_simulator(
+    token: CancellationToken,
+    target_addr: String,
+    config: SimulatorConfig,
+    streams: Vec<StreamSpec>, 
+) {
+    std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async move {
+                // Own socket, not shared with the listener
+                let socket = Arc::new(
+                    UdpSocket::bind("0.0.0.0:0").await.unwrap()
+                );
+                run_simulator(socket, target_addr, token, config, streams).await.ok();
+            });
+    });
+}
 
-    loop {
-        if *cancel.lock().unwrap() {
-            break;
-        }
-
-        let mut len_buf = [0u8; 4];
-        if file.read_exact(&mut len_buf).is_err() {
-            break;
-        }
-
-        let len = u32::from_le_bytes(len_buf);
-        let mut buf = vec![0u8; len as usize];
-
-        file.read_exact(&mut buf)?;
-
-        socket.send_to(&buf, addr).await?;
-
-        // crude pacing (can be improved with timestamps if needed)
-        sleep(Duration::from_millis(20)).await;
-    }
-
-    Ok(())
+pub fn detection_only_stream() -> Vec<StreamSpec> {
+    vec![
+        StreamSpec {
+            interval: Duration::from_millis(200),
+            generator: gen_detected_objects,
+        },
+    ]
 }

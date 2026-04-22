@@ -1,15 +1,15 @@
 use tauri::State;
 
-use std::sync::{Arc, Mutex};
+use tokio::sync::Mutex; 
+use tokio_util::sync::CancellationToken;
 
 use crate::network::service::UdpService;
-use crate::network::dummy::{self, SimulatorConfig};
-use crate::network::sender;
 
-use crate::proto::packets::*;
+use crate::network::dummy::{StreamSpec, stream_table, SimulatorConfig};
+
 
 pub struct DummyStreamHandle {
-    pub cancel: Mutex<Option<Arc<Mutex<bool>>>>,
+    pub token: Mutex<Option<CancellationToken>>,
 }
 
 // PING COMMAND
@@ -32,7 +32,6 @@ pub async fn send_ping_cmd(
 
 
 // STREAM TABLE
-use crate::network::dummy::{StreamSpec, stream_table};
 
 pub fn all_stream_specs() -> Vec<StreamSpec> {
     stream_table()
@@ -42,81 +41,50 @@ pub fn all_stream_specs() -> Vec<StreamSpec> {
 // FULL SIMULATOR
 #[tauri::command]
 pub async fn start_dummy_streams(
-    udp: State<'_, UdpService>,
     handle: State<'_, DummyStreamHandle>,
 ) -> Result<(), String> {
-    stop_dummy_streams(handle.clone()).await?;
+    if let Some(old_token) = handle.token.lock().await.take() {
+        old_token.cancel();
+    }
+    let token = CancellationToken::new();
+    *handle.token.lock().await = Some(token.clone());
 
-    let socket = udp.socket();
-    let cancel = Arc::new(Mutex::new(false));
-
-    *handle.cancel.lock().unwrap() = Some(cancel.clone());
-
-    let config = crate::network::dummy::SimulatorConfig {
-        jitter_ms: 30,
-        packet_loss: 0.02,
-        record_path: None,
-        replay_path: None,
-    };
-
-    let addr = "127.0.0.1:9000".to_string();
-
-    tokio::spawn(async move {
-        let _ = crate::network::dummy::run_simulator(
-            socket,
-            addr,
-            cancel,
-            config,
-        )
-        .await;
-    });
-
-    println!("Async multi-stream simulator started");
+    crate::network::dummy::spawn_simulator(
+        token,
+        "127.0.0.1:9000".to_string(),
+        SimulatorConfig { jitter_ms: 30, packet_loss: 0.02, record_path: None },
+        crate::network::dummy::stream_table(),
+    );
     Ok(())
 }
 
-// SINGLE STREAM (for debug)
 #[tauri::command]
-pub async fn start_dummy_imu_stream(
-    udp: State<'_, UdpService>,
+pub async fn start_detection_sim(
     handle: State<'_, DummyStreamHandle>,
 ) -> Result<(), String> {
-    stop_dummy_streams(handle.clone()).await?;
+    if let Some(old_token) = handle.token.lock().await.take() {
+        old_token.cancel();
+    }
+    let token = CancellationToken::new();
+    *handle.token.lock().await = Some(token.clone());
 
-    let socket = udp.socket();
-    let cancel = Arc::new(Mutex::new(false));
-
-    *handle.cancel.lock().unwrap() = Some(cancel.clone());
-
-    let config = crate::network::dummy::SimulatorConfig {
-        jitter_ms: 10,
-        packet_loss: 0.0,
-        record_path: None,
-        replay_path: None,
-    };
-
-    tokio::spawn(async move {
-        let _ = crate::network::dummy::run_simulator(
-            socket,
-            "127.0.0.1:9000".to_string(),
-            cancel,
-            config,
-        )
-        .await;
-    });
-
-    println!("IMU-only simulator started");
+    crate::network::dummy::spawn_simulator(
+        token,
+        "127.0.0.1:9000".to_string(),
+        SimulatorConfig { jitter_ms: 0, packet_loss: 0.0, record_path: None },
+        crate::network::dummy::detection_only_stream(), 
+    );
+    println!("Detection-only simulator started");
     Ok(())
 }
-
 
 //STOP SIMULATOR
 #[tauri::command]
 pub async fn stop_dummy_streams(
     handle: State<'_, DummyStreamHandle>,
 ) -> Result<(), String> {
-    if let Some(cancel) = handle.cancel.lock().unwrap().take() {
-        *cancel.lock().unwrap() = true;
+    if let Some(token) = handle.token.lock().await.take() {
+        token.cancel();
         println!("Dummy simulator stop signalled");
     }
     Ok(())

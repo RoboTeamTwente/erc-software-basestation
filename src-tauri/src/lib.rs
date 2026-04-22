@@ -40,9 +40,9 @@ pub fn run() {
             commands::rover_commands::send_pixel,
             commands::rover_commands::select_object,
             commands::network::send_ping_cmd,
-            commands::network::start_dummy_imu_stream,
             commands::network::start_dummy_streams,
             commands::network::stop_dummy_streams,
+            commands::network::start_detection_sim,
             commands::load_model::load_model,
             commands::load_model::debug_resource_dir,
         ])
@@ -79,10 +79,9 @@ pub fn run() {
 
             // Register service so commands can access it
             app.handle().manage(udp_service);
-            app.handle().manage(DummyStreamHandle{
-                cancel: Mutex::new(None),
+            app.handle().manage(DummyStreamHandle {
+                token: tokio::sync::Mutex::new(None),
             });
-
             // Spawn listener and MOVE the socket into it
             let listener_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {

@@ -26,6 +26,7 @@ tauri-plugin-opener = "2.0  "
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
 hyper = { version = "0.14", features = ["full"] }
 bytes = "1"
 anyhow = "1"        # For simple error handling

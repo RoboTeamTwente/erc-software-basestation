@@ -10,6 +10,22 @@
         return raw.replace("OBJECT_", "").replaceAll("_", " ");
     }
 
+    async function startObjectDummy(){
+        try {
+            await invoke("start_detection_sim");
+        } catch (e) {
+            console.error("startObjectDummy failed:", e);
+        }
+    }
+
+    async function stopGenDummy(){
+        try {
+            await invoke("stop_dummy_streams");
+        } catch (e) {
+            console.error("stopGenDummy failed:", e);
+        }
+    }
+
     onMount(() => {
         const unlisten = listen("detected-objects-update", (event) => {
             const obj = BasestationDetectedObject.fromJSON(event.payload);
@@ -68,10 +84,10 @@
         </div>
 
         <div class="grid-item" style="flex-direction: column;">
-            <button class="button" style="align-self: flex-end;">
+            <button class="button" style="align-self: flex-end;" onclick={() => startObjectDummy()}>
                 Request Actions Identification
             </button>
-            <button class="button" style="align-self: flex-end;">
+            <button class="button" style="align-self: flex-end;" onclick={() => stopGenDummy()}>
                 Stop Actions Identification
             </button>
         </div>
