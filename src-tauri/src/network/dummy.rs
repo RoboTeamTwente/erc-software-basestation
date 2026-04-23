@@ -87,7 +87,7 @@ pub fn stream_table() -> Vec<StreamSpec> {
         StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_ctrl },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_arm_diag },
         StreamSpec { interval: Duration::from_millis(100), generator: gen_arm_feedback },
-        StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_pos },
+        StreamSpec { interval: Duration::from_millis(100),  generator: gen_arm_pos },
         StreamSpec { interval: Duration::from_millis(200), generator: gen_arm_target },
         StreamSpec { interval: Duration::from_millis(300), generator: gen_arm_obstructions },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_drive_diag },
@@ -300,6 +300,12 @@ fn gen_detected_objects(t: f32) -> pb_envelope::Payload {
     let mut state = STATE.lock().unwrap();
     let mut rng = rand::rng();
 
+    // Debug
+    let start = std::time::Instant::now();
+    // let mut state = STATE.lock().unwrap();
+    let lock_time = start.elapsed();
+    // Debug end
+
     // Start a new frame once we've emitted all visible objects
     if state.current_index >= state.visible.len() {
         state.frame_id += 1;
@@ -333,6 +339,13 @@ fn gen_detected_objects(t: f32) -> pb_envelope::Payload {
             obj.confidence = (obj.confidence + wobble).clamp(0.5, 0.99);
         }
     }
+
+    // Debug
+    let total_time = start.elapsed();
+    if total_time.as_millis() > 50 {
+        println!("[detected] slow gen: lock={:?} total={:?}", lock_time, total_time);
+    }
+    //Debug end
 
     let total = state.visible.len() as u32;
 

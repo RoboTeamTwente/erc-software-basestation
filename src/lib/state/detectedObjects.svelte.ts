@@ -6,33 +6,34 @@ export type TrackedObject = {
     actions: TrackedState;
 };
 
-// Reactive shared state
 export const detectedObjectsState = $state({
     objects: [] as TrackedObject[],
     hoveredId: null as number | null,
 });
 
 const objectsMap = new Map<number, BasestationDetectedObject>();
-const lastSeen   = new Map<number, number>();
+const lastSeenAt = new Map<number, number>();
 const trackedMap = new Map<number, TrackedState>();
 
-export function handleDetectedObject(obj: BasestationDetectedObject) {
-    if (obj.id === undefined || obj.frame_id === undefined) return;
+const STALE_MS = 2000;
 
-    const id    = obj.id;
-    const frame = obj.frame_id;
+export function handleDetectedObjects(batch: BasestationDetectedObject[]) {
+    if (!batch.length) return;
 
-    objectsMap.set(id, obj);
-    lastSeen.set(id, frame);
+    const now = Date.now();
 
-    if (!trackedMap.has(id)) {
-        trackedMap.set(id, { complete: false });
+    for (const obj of batch) {
+        if (obj.id === undefined) continue;
+        objectsMap.set(obj.id, obj);
+        lastSeenAt.set(obj.id, now);
+        if (!trackedMap.has(obj.id)) {
+            trackedMap.set(obj.id, { complete: false });
+        }
     }
 
-    // prune objects not seen in the last 5 frames
-    for (const [oid, lastFrame] of lastSeen.entries()) {
-        if (frame - lastFrame > 5) {
-            lastSeen.delete(oid);
+    for (const [oid, seenAt] of lastSeenAt.entries()) {
+        if (now - seenAt > STALE_MS) {
+            lastSeenAt.delete(oid);
             objectsMap.delete(oid);
         }
     }

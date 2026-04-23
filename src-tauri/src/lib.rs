@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use tauri::Manager;
 
 use commands::rover_states::RoverState;
+use commands::rover_commands::RoverAddress;
 use commands::network::DummyStreamHandle;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,6 +18,10 @@ pub fn run() {
             arm_manual_mode: Mutex::new(true),
             pickup_mode: Mutex::new(false),
         })
+        .manage(RoverAddress {
+            ip: "127.0.0.1:9000".into(),
+        })
+
         //Plugins must be loaded here
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())

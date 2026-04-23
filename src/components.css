@@ -263,3 +263,21 @@
     justify-content: center;
     pointer-events: none;
 }
+
+/* Error */
+.model-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.model-error-icon {
+    font-size: 2rem;
+    color: var(--color-rtpurple);
+}

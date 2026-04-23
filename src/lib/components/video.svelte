@@ -2,7 +2,7 @@
     import { invoke } from "@tauri-apps/api/core";
     import { onMount } from "svelte";
     import '../../global.css';
-    import { detectedObjectsState } from "$lib/state/detectedObjects.svelte";
+    import { detectedObjectsState, handleDetectedObjects } from "$lib/state/detectedObjects.svelte";
     import { detectedObjectTypeToJSON } from "$lib/proto/components/basestation/detected_object";
 
     type Props = {
@@ -35,7 +35,6 @@
 
     // ----- BOUNDING BOXES -----
     function drawBoundingBoxes(ctx: CanvasRenderingContext2D) {
-        // We need the actual rendered image dimensions (accounting for object-fit letterboxing)
         const rect      = imgElement.getBoundingClientRect();
         const imgRatio  = imgElement.naturalWidth / imgElement.naturalHeight;
         const rectRatio = rect.width / rect.height;
@@ -53,52 +52,29 @@
             offsetY       = (rect.height - displayHeight) / 2;
         }
 
-        for (const obj of detectedObjectsState.objects) {
-            const { bbox, type, id, confidence } = obj.data;
-            if (!bbox) continue;
-
-            // BoundingBox coords are normalized 0-1000 (x, y, width, height)
-            const x = offsetX + ((bbox.x ?? 0) / 1000) * displayWidth;
-            const y = offsetY + ((bbox.y ?? 0) / 1000) * displayHeight;
-            const w =           ((bbox.width  ?? 0) / 1000) * displayWidth;
-            const h =           ((bbox.height ?? 0) / 1000) * displayHeight;
-
-            // Box
-            ctx.strokeStyle = obj.actions.complete ? "#00ff88" : "#ff4444";
-            ctx.lineWidth   = 2;
-            ctx.strokeRect(x, y, w, h);
-
-            // Label background
-            const label = `${detectedObjectTypeToJSON(type ?? 0).replace("OBJECT_", "")}  ${((confidence ?? 0) * 100).toFixed(0)}%`;
-            ctx.font = "bold 12px monospace";
-            const textW = ctx.measureText(label).width;
-            ctx.fillStyle = obj.actions.complete ? "#00ff88cc" : "#ff4444cc";
-            ctx.fillRect(x, y - 18, textW + 8, 18);
-
-            // Label text
-            ctx.fillStyle = "#ffffff";
-            ctx.fillText(label, x + 4, y - 4);
-        }
-
+        // Single pass — hover state handled inline
         for (const obj of detectedObjectsState.objects) {
             const { bbox, type, id, confidence } = obj.data;
             if (!bbox) continue;
 
             const isHovered = detectedObjectsState.hoveredId === id;
+            const isComplete = obj.actions.complete;
 
             const x = offsetX + ((bbox.x ?? 0) / 1000) * displayWidth;
             const y = offsetY + ((bbox.y ?? 0) / 1000) * displayHeight;
-            const w = ((bbox.width  ?? 0) / 1000) * displayWidth;
-            const h = ((bbox.height ?? 0) / 1000) * displayHeight;
+            const w =           ((bbox.width  ?? 0) / 1000) * displayWidth;
+            const h =           ((bbox.height ?? 0) / 1000) * displayHeight;
 
-            ctx.strokeStyle = isHovered ? "#ffff00" : obj.actions.complete ? "#00ff88" : "#ff4444";
+            const color = isHovered ? "#ffff00" : isComplete ? "#00ff88" : "#ff4444";
+
+            ctx.strokeStyle = color;
             ctx.lineWidth   = isHovered ? 3 : 2;
             ctx.strokeRect(x, y, w, h);
 
             const label = `${detectedObjectTypeToJSON(type ?? 0).replace("OBJECT_", "")}  ${((confidence ?? 0) * 100).toFixed(0)}%`;
             ctx.font = "bold 12px monospace";
             const textW = ctx.measureText(label).width;
-            ctx.fillStyle = isHovered ? "#ffff00cc" : obj.actions.complete ? "#00ff88cc" : "#ff4444cc";
+            ctx.fillStyle = isHovered ? "#ffff00cc" : isComplete ? "#00ff88cc" : "#ff4444cc";
             ctx.fillRect(x, y - 18, textW + 8, 18);
             ctx.fillStyle = "#ffffff";
             ctx.fillText(label, x + 4, y - 4);

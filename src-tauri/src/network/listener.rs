@@ -1,6 +1,7 @@
-use crate::proto::packets::{pb_envelope::Payload, PbEnvelope};
+use crate::proto::packets::{pb_envelope::Payload, PbEnvelope, BasestationDetectedObject};
 use prost::Message;
 use std::time::Instant;
+use std::collections::HashMap;
 use tauri::Emitter;
 use tokio::net::UdpSocket;
 
@@ -83,12 +84,21 @@ impl Throttles {
     }
 }
 
+struct FrameBuffer {
+    frame_id: u32,
+    total: u32,
+    objects: Vec<BasestationDetectedObject>,
+}
+
 pub async fn run_listener(
     socket: std::sync::Arc<UdpSocket>,
     app_handle: tauri::AppHandle,
 ) -> anyhow::Result<()> {
     let mut buf = vec![0u8; 4096];
     let mut t = Throttles::new();
+
+    let mut det_buffer: Vec<BasestationDetectedObject> = Vec::new();
+    let mut det_frame: u32 = 0;
 
     loop {
         let (len, _addr) = socket.recv_from(&mut buf).await?;
@@ -177,9 +187,21 @@ pub async fn run_listener(
                 }
             }
             Payload::DetectedObject(msg) => {
-                if t.detected_objects.ready() {
-                    app_handle.emit( "detected-objects-update", &msg);
+                if msg.frame_id != det_frame {
+                    // New frame started, clear old buffer
+                    det_buffer.clear();
+                    det_frame = msg.frame_id;
                 }
+                det_buffer.push(msg.clone());
+                
+                // Emit only when we have the complete frame
+                if msg.index + 1 == msg.total_count {
+                    app_handle.emit("detected-objects-update", &det_buffer);
+                    det_buffer.clear();
+                }
+                // if t.detected_objects.ready() {
+                //     app_handle.emit( "detected-objects-update", &msg);
+                // }
             }
             Payload::ObjectSelection(msg) => {
                 if t.object_selection.ready() {
