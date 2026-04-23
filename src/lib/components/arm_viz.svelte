@@ -4,6 +4,8 @@
   import { armData } from '$lib/state/arm';
   import type { ArmBoardActualPositions } from '$lib/proto/components/arm_board/movement_software_feedback';
 
+  import'$lib/css/arm.css';
+
   let unlisten: UnlistenFn | undefined;
 
   // ── Projection (precompute trig constants) ────────────────────────────────
@@ -282,93 +284,9 @@
       <line x1={p0.sx} y1={p0.sy} x2={AX_X.sx} y2={AX_X.sy} class="axis ax-x"/>
       <line x1={p0.sx} y1={p0.sy} x2={AX_Z.sx} y2={AX_Z.sy} class="axis ax-z"/>
       <line x1={p0.sx} y1={p0.sy} x2={AX_Y.sx} y2={AX_Y.sy} class="axis ax-y"/>
-      <text x="172" y="156" class="axis-label">X</text>
-      <text x="186" y="130" class="axis-label">Z</text>
-      <text x="130" y="18"  class="axis-label">Y</text>
     </svg>
   </div>
 </div>
 
 <style>
-  .arm-viz {
-    background: var(--color-light-gray);
-    border: 1px solid var(--color-border-gray);
-    border-radius: 8px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .viz-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 7px;
-    border-bottom: 1px solid var(--color-border-gray);
-    flex-shrink: 0;
-  }
-  .viz-title { font-size: 13px; font-weight: 600; color: #1a1a1a; }
-
-  .jaw-pill {
-    display: flex; align-items: center; gap: 5px;
-    font-size: 11px; color: #888;
-    background: var(--color-offwhite);
-    border: 1px solid var(--color-border-gray);
-    border-radius: 99px;
-    padding: 2px 9px 2px 6px;
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
-  }
-  .jaw-pill.open {
-    color: var(--color-rtpurple);
-    border-color: var(--color-rtpurple);
-    background: var(--color-purple-light);
-  }
-  .pip {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: #ccc; transition: background 0.2s; flex-shrink: 0;
-  }
-  .jaw-pill.open .pip { background: var(--color-rtpurple); }
-
-  .diagram-card {
-    background: var(--color-offwhite);
-    border: 1px solid var(--color-border-gray);
-    border-radius: 6px;
-    padding: 2px;
-    flex: 1 1 0;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .arm-svg { width: 100%; height: 100%; display: block; }
-
-  .ground-arc { fill: none; stroke: #c8c8da; stroke-width: 1; stroke-dasharray: 4 3; }
-  .base-needle { stroke: var(--color-rtpurple); stroke-width: 1.5; stroke-linecap: round; opacity: 0.55; }
-  .base-ellipse { fill: #e4e0f0; stroke: #bbb; stroke-width: 0.8; }
-
-  /* No filter — cheap flat shadow via opacity only */
-  .shadow-group { opacity: 0.22; }
-
-  .drop-line { stroke: #b0a8c8; stroke-width: 0.8; stroke-dasharray: 2.5 2.5; stroke-linecap: round; }
-
-  .gshaft { stroke: #555; stroke-width: 3; stroke-linecap: round; }
-
-  .finger-quad { fill: #1e1e1e; stroke: #000; stroke-width: 0.6; stroke-linejoin: round; }
-
-  .joint { fill: white; stroke: var(--color-rtpurple); stroke-width: 1.8; }
-  .jbase { fill: var(--color-rtpurple); stroke: var(--color-rtpurple-dark); stroke-width: 2; }
-  .jtip  { stroke: #555; }
-
-  .axis { stroke-width: 1; stroke-linecap: round; opacity: 0.35; }
-  .ax-x { stroke: #c0392b; }
-  .ax-z { stroke: #27ae60; }
-  .ax-y { stroke: #2980b9; }
-  .axis-label { font-size: 7px; fill: #bbb; font-family: sans-serif; }
 </style>

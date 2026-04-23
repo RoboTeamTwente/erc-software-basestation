@@ -27,16 +27,16 @@
     }
 
     onMount(() => {
-    let unlisten: UnlistenFn | undefined;
+        let unlisten: UnlistenFn | undefined;
 
-    listen("detected-objects-update", (event) => {
-        const batch = (event.payload as any[]).map(o =>
-            BasestationDetectedObject.fromJSON(o)
-        );
-        handleDetectedObjects(batch);
-    }).then(fn => { unlisten = fn; });
+        listen("detected-objects-update", (event) => {
+            const batch = (event.payload as any[]).map(o =>
+                BasestationDetectedObject.fromJSON(o)
+            );
+            handleDetectedObjects(batch);
+        }).then(fn => { unlisten = fn; });
 
-    return () => unlisten?.();
+        return () => unlisten?.();
     });
 </script>
 

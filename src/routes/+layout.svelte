@@ -124,8 +124,12 @@
         }
         await invoke("set_state", {stateType: "ArmManual", value: manualArmMode});
     }
-    async function getPickupMode() {
+    async function getModes() {
         pickupMode = await invoke("get_state", {stateType: "Pickup"})
+        manualDriveMode = await invoke("get_state", {stateType: "DriveManual"});
+        driveControlMode = manualDriveMode ? "Manual drive" : "Automatic drive";
+        manualArmMode = await invoke("get_state", {stateType: "ArmManual"});
+        armControlMode = manualArmMode ? "Manual arm" : "Automatic arm";
     }
     async function togglePickup() {
         pickupMode = !pickupMode;
@@ -134,7 +138,7 @@
     }
 
     $effect(() => {
-        const interval = setInterval(getPickupMode, 250);
+        const interval = setInterval(getModes, 250);
         return () => clearInterval(interval);
     });
 

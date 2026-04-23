@@ -450,7 +450,7 @@ pub async fn run_simulator(
     let mut t = 0.0f32;
     let mut last_global = Instant::now();
     let mut rng = Lcg::new(0xdeadbeef);
-    let (tx, mut rx) = mpsc::channel::<Vec<u8>>(1024);
+    let (tx, mut rx) = mpsc::channel::<Vec<u8>>(4096);
 
     // Sender task
     let socket_clone = socket.clone();
@@ -489,7 +489,9 @@ pub async fn run_simulator(
                                 let _ = file.write_all(&(buf.len() as u32).to_le_bytes());
                                 let _ = file.write_all(&buf);
                             }
-                            let _ = tx.try_send(buf);
+                            if tx.send(buf).await.is_err() {
+                                break; // receiver dropped, simulator shutting down
+                            }
                         }
                     }
                 }

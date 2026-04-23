@@ -15,12 +15,23 @@ const objectsMap = new Map<number, BasestationDetectedObject>();
 const lastSeenAt = new Map<number, number>();
 const trackedMap = new Map<number, TrackedState>();
 
-const STALE_MS = 2000;
+let lastBatchAt = 0;
+let avgIntervalMs = 500; // initial guess
 
 export function handleDetectedObjects(batch: BasestationDetectedObject[]) {
     if (!batch.length) return;
 
     const now = Date.now();
+    
+    // Update rolling average of how often batches arrive
+    if (lastBatchAt > 0) {
+        const gap = now - lastBatchAt;
+        avgIntervalMs = avgIntervalMs * 0.8 + gap * 0.2; // exponential moving average
+    }
+    lastBatchAt = now;
+
+    // Prune anything not seen in 5 update cycles
+    const staleMs = Math.max(2000, avgIntervalMs * 5);
 
     for (const obj of batch) {
         if (obj.id === undefined) continue;
@@ -32,7 +43,7 @@ export function handleDetectedObjects(batch: BasestationDetectedObject[]) {
     }
 
     for (const [oid, seenAt] of lastSeenAt.entries()) {
-        if (now - seenAt > STALE_MS) {
+        if (now - seenAt > staleMs) {
             lastSeenAt.delete(oid);
             objectsMap.delete(oid);
         }

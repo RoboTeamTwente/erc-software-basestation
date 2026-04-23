@@ -1,0 +1,185 @@
+
+.arm-viz {
+    background: var(--color-light-gray);
+    border: 1px solid var(--color-border-gray);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.viz-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--color-border-gray);
+    flex-shrink: 0;
+}
+
+.jaw-pill {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: #888;
+    background: var(--color-offwhite);
+    border: 1px solid var(--color-border-gray);
+    border-radius: 99px;
+    padding: 2px 9px 2px 6px;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.jaw-pill.open {
+    color: var(--color-rtpurple);
+    border-color: var(--color-rtpurple);
+    background: var(--color-purple-light);
+}
+.pip {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #ccc; transition: background 0.2s; flex-shrink: 0;
+}
+.jaw-pill.open .pip { background: var(--color-rtpurple); }
+
+.diagram-card {
+    background: var(--color-offwhite);
+    border: 1px solid var(--color-border-gray);
+    border-radius: 6px;
+    padding: 2px;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.arm-svg { width: 100%; height: 100%; display: block; }
+
+.ground-arc { fill: none; stroke: #c8c8da; stroke-width: 1; stroke-dasharray: 4 3; }
+.base-needle { stroke: var(--color-rtpurple); stroke-width: 1.5; stroke-linecap: round; opacity: 0.55; }
+.base-ellipse { fill: #e4e0f0; stroke: #bbb; stroke-width: 0.8; }
+
+/* No filter — cheap flat shadow via opacity only */
+.shadow-group { opacity: 0.22; }
+
+.drop-line { stroke: #b0a8c8; stroke-width: 0.8; stroke-dasharray: 2.5 2.5; stroke-linecap: round; }
+
+.gshaft { stroke: #555; stroke-width: 3; stroke-linecap: round; }
+
+.finger-quad { fill: #1e1e1e; stroke: #000; stroke-width: 0.6; stroke-linejoin: round; }
+
+.joint { fill: white; stroke: var(--color-rtpurple); stroke-width: 1.8; }
+.jbase { fill: var(--color-rtpurple); stroke: var(--color-rtpurple-dark); stroke-width: 2; }
+.jtip  { stroke: #555; }
+
+.axis { stroke-width: 1; stroke-linecap: round; opacity: 0.35; }
+.ax-x { stroke: #c0392b; }
+.ax-z { stroke: #27ae60; }
+.ax-y { stroke: #2980b9; }
+.axis-label { font-size: 7px; fill: #bbb; font-family: sans-serif; }
+
+/* Feedback */
+.arm-gauges {
+    background: var(--color-light-gray);
+    border: 1px solid var(--color-border-gray);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* Fill cell, never impose size */
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.gauges-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--color-border-gray);
+    flex-shrink: 0;
+}
+
+.gauges-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* rows grow equally to fill remaining height */
+    grid-template-rows: repeat(2, 1fr);
+    gap: 6px;
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.gauge-cell {
+    background: var(--color-offwhite);
+    border: 1px solid var(--color-border-gray);
+    border-radius: 6px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* SVG scales to whatever the cell gives it */
+.gsv {
+    width: 100%;
+    /* aspect-ratio keeps it square without imposing a pixel height */
+    aspect-ratio: 1;
+    max-width: 56px;   /* cap so it doesn't look absurd in huge cells */
+    overflow: visible;
+}
+
+.g-track { fill:none; stroke:#e0e0e0; stroke-width:3; stroke-linecap:round; }
+.g-fill  { fill:none; stroke:var(--color-rtpurple); stroke-width:3; stroke-linecap:round; }
+
+.g-val {
+    font-size: 7.5px;
+    fill: #333;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    font-family: sans-serif;
+    font-weight: 600;
+}
+.g-label { font-size: 9px; color: #888; font-family: sans-serif; }
+
+/* ── Movement feedback status banner ──────────────────────────────────────── */
+.arm-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: sans-serif;
+    flex-shrink: 0;
+    transition: background 0.25s, border-color 0.25s, color 0.25s;
+}
+
+.arm-status.ok    { background: #edfaf1; border-color: #a3d9b1; color: #1e7e44; }
+.arm-status.warn  { background: #fff8e6; border-color: #f5cc6a; color: #8a6000; }
+.arm-status.error { background: #fdecea; border-color: #f0a8a3; color: #b91c1c; }
+
+.status-pip {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.25s;
+}
+.arm-status.ok    .status-pip { background: #22c55e; }
+.arm-status.warn  .status-pip { background: #f59e0b; }
+.arm-status.error .status-pip { background: #ef4444; }
+
+.status-label { line-height: 1; }

@@ -188,20 +188,29 @@ pub async fn run_listener(
             }
             Payload::DetectedObject(msg) => {
                 if msg.frame_id != det_frame {
-                    // New frame started, clear old buffer
-                    det_buffer.clear();
+                    // Emit the incomplete previous frame rather than discarding it
+                    if !det_buffer.is_empty() {
+                        let handle = app_handle.clone();
+                        let batch = det_buffer.clone();
+                        tokio::spawn(async move {
+                            handle.emit("detected-objects-update", &batch).ok();
+                        });
+                        det_buffer.clear();
+                    }
                     det_frame = msg.frame_id;
                 }
+
                 det_buffer.push(msg.clone());
-                
-                // Emit only when we have the complete frame
+
+                // Also emit when frame is complete as before
                 if msg.index + 1 == msg.total_count {
-                    app_handle.emit("detected-objects-update", &det_buffer);
+                    let handle = app_handle.clone();
+                    let batch = det_buffer.clone();
                     det_buffer.clear();
+                    tokio::spawn(async move {
+                        handle.emit("detected-objects-update", &batch).ok();
+                    });
                 }
-                // if t.detected_objects.ready() {
-                //     app_handle.emit( "detected-objects-update", &msg);
-                // }
             }
             Payload::ObjectSelection(msg) => {
                 if t.object_selection.ready() {

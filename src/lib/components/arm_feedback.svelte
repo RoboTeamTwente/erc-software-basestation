@@ -1,9 +1,37 @@
 <script lang="ts">
-  import { armData } from '$lib/state/arm';
+  import { onMount, onDestroy } from 'svelte';
+  import { listen } from '@tauri-apps/api/event';
+  import { armData, armFeedback } from '$lib/state/arm';
+  import { ArmBoardMovementFeedback_ArmError, ArmBoardMovementFeedback } from '$lib/proto/components/arm_board/movement_software_feedback';
+  import '$lib/css/arm.css';
+
+  let unlisten: (() => void) | undefined;
+
+  onMount(async () => {
+    unlisten = await listen<{ arm_error: number }>('arm-feedback-update', (event) => {
+      armFeedback.set(ArmBoardMovementFeedback.fromJSON(event.payload));
+    });
+  });
+
+  onDestroy(() => unlisten?.());
+
+  // ── Error display helpers ─────────────────────────────────────────────────
+  type Severity = 'ok' | 'warn' | 'error';
+
+  const ERROR_META: Record<ArmBoardMovementFeedback_ArmError, { label: string; severity: Severity }> = {
+    [ArmBoardMovementFeedback_ArmError.ALL_OK]:           { label: 'All OK',           severity: 'ok'    },
+    [ArmBoardMovementFeedback_ArmError.OBSTRUCTION]:      { label: 'Obstruction',       severity: 'warn'  },
+    [ArmBoardMovementFeedback_ArmError.CALIBRATION]:      { label: 'Calibrating…',      severity: 'warn'  },
+    [ArmBoardMovementFeedback_ArmError.POINT_NOT_IN_RANGE]:{ label: 'Out of Range',     severity: 'error' },
+    [ArmBoardMovementFeedback_ArmError.MOTOR_MALFUNCTION]:{ label: 'Motor Malfunction', severity: 'error' },
+    [ArmBoardMovementFeedback_ArmError.UNRECOGNIZED]:     { label: 'Unknown Error',     severity: 'error' },
+  };
+
+  $: meta = ERROR_META[$armFeedback.arm_error ?? ArmBoardMovementFeedback_ArmError.ALL_OK]
+            ?? ERROR_META[ArmBoardMovementFeedback_ArmError.UNRECOGNIZED];
 
   // ── Gauge arc helpers (40×40 viewBox, centred at 20,21) ──────────────────
   const R=15, GCX=20, GCY=21, SD=-225, SW=270;
-
   function gpt(d: number) {
     const rad = d * Math.PI / 180;
     return { x: GCX + R * Math.cos(rad), y: GCY + R * Math.sin(rad) };
@@ -21,17 +49,24 @@
   }
 
   const joints = [
-    { key: 'base_actual_position',             label: 'Base',    min: -90,  max: 90  },
-    { key: 'stepper_top_actual_position',      label: 'Upper',   min: -60,  max: 60  },
-    { key: 'stepper_bottom_actual_position',   label: 'Lower',   min: -60,  max: 60  },
-    { key: 'gripper_rotation_actual_position', label: 'Rotate',  min: -180, max: 180 },
-    { key: 'gripper_pitch_actual_position',    label: 'Pitch',   min: -90,  max: 90  },
-    { key: 'jaw_actual_position',              label: 'Jaw',     min: 0,    max: 45  },
+    { key: 'base_actual_position',             label: 'Base',   min: -90,  max: 90  },
+    { key: 'stepper_top_actual_position',      label: 'Upper',  min: -60,  max: 60  },
+    { key: 'stepper_bottom_actual_position',   label: 'Lower',  min: -60,  max: 60  },
+    { key: 'gripper_rotation_actual_position', label: 'Rotate', min: -180, max: 180 },
+    { key: 'gripper_pitch_actual_position',    label: 'Pitch',  min: -90,  max: 90  },
+    { key: 'jaw_actual_position',              label: 'Jaw',    min: 0,    max: 45  },
   ] as const;
 </script>
 
 <div class="arm-gauges">
   <span class="heading">Joint Angles</span>
+
+  <!-- ── Movement feedback status banner ── -->
+  <div class="arm-status" class:ok={meta.severity === 'ok'} class:warn={meta.severity === 'warn'} class:error={meta.severity === 'error'}>
+    <span class="status-pip"></span>
+    <span class="status-label">{meta.label}</span>
+  </div>
+
   <div class="gauges-grid">
     {#each joints as j}
       {@const val = ($armData[j.key] ?? 0)}
@@ -48,76 +83,3 @@
     {/each}
   </div>
 </div>
-
-<style>
-  .arm-gauges {
-    background: var(--color-light-gray);
-    border: 1px solid var(--color-border-gray);
-    border-radius: 8px;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    /* Fill cell, never impose size */
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .gauges-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #1a1a1a;
-    padding-bottom: 7px;
-    border-bottom: 1px solid var(--color-border-gray);
-    flex-shrink: 0;
-  }
-
-  .gauges-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    /* rows grow equally to fill remaining height */
-    grid-template-rows: repeat(2, 1fr);
-    gap: 6px;
-    flex: 1 1 0;
-    min-height: 0;
-  }
-
-  .gauge-cell {
-    background: var(--color-offwhite);
-    border: 1px solid var(--color-border-gray);
-    border-radius: 6px;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  /* SVG scales to whatever the cell gives it */
-  .gsv {
-    width: 100%;
-    /* aspect-ratio keeps it square without imposing a pixel height */
-    aspect-ratio: 1;
-    max-width: 56px;   /* cap so it doesn't look absurd in huge cells */
-    overflow: visible;
-  }
-
-  .g-track { fill:none; stroke:#e0e0e0; stroke-width:3; stroke-linecap:round; }
-  .g-fill  { fill:none; stroke:var(--color-rtpurple); stroke-width:3; stroke-linecap:round; }
-
-  .g-val {
-    font-size: 7.5px;
-    fill: #333;
-    text-anchor: middle;
-    dominant-baseline: middle;
-    font-family: sans-serif;
-    font-weight: 600;
-  }
-  .g-label { font-size: 9px; color: #888; font-family: sans-serif; }
-</style>
