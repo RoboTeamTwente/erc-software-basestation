@@ -21,20 +21,6 @@
         await invoke("send_ping_cmd");
     }
 
-    async function pingGPS() {
-        try {
-            await invoke("send_ping_cmd", { packetType: 'gps' });
-        } catch (e) {
-            console.error("pingGPS failed:", e);
-        }
-    }
-    async function pingPh() {
-        try {
-            await invoke("send_ping_cmd", { packetType: 'ph' });
-        } catch (e) {
-            console.error("pingPh failed:", e);
-        }
-    }
     async function startGenDummy(){
         try {
             await invoke("start_dummy_streams");
@@ -132,106 +118,131 @@
     }
 </script>
 
-<div>
-    <button class="button" style="margin: 10px;" onclick={ping}>
-        Ping Rust
-    </button>
+<div class="grid">
+    <div class="grid-item">
+        <div class="container">
 
-    <button class="button" style="margin: 10px;" onclick={clearCache}>
-        Clear cache
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => listFiles("images")}>
-        List image files
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => saveSnapshot()}>
-        Save an image file
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("tasks")}>
-        Delete all task files
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("images")}>
-        Delete all image files
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("maps")}>
-        Delete all map files
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => pingUdp()}>
-        Ping UDP
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => pingGPS()}>
-        Ping GPS
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => pingPh()}>
-        Ping PH
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => startGenDummy()}>
-        Start dummy general stream
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => stopGenDummy()}>
-        Stop dummy general stream
-    </button>
-
-    <button class="button" style="margin: 10px;" onclick={() => startObjectDummy()}>
-        Start dummy object stream
-    </button>
-
-    <button class="button" style="margin: 10px" onclick={() => whereIsTheModel()}>
-        Where is the model
-    </button>
+            <div class="grid-nest" style=" grid-template-columns: 1fr 1fr">
 
 
-    <button class="button" onclick={getIP}>
-        Check my IP
-    </button>
+                <div class="grid-item" style="flex-direction: column;">
+                    <h1 class="heading"> <span> File management </span> </h1>
 
-    {#if loading}
-    <p>Loading...</p>
-    {/if}
-
-    {#if ip}
-    <p>Your IP: {ip}</p>
-    {/if}
-
-    {#if error}
-    <p style="color:red">{error}</p>
-    {/if}
-
-    
-    <div>
-        {#if taskFiles.length > 0}
-        <div style="margin: 10px;">
-            <h3>Task Files:</h3>
-            <ul>
-                {#each taskFiles as file}
-                <li>
-                    <button
-                    class="link-button"
-                    onclick={() => openTaskFile(file)}
-                    >
-                    {file}
+                    <button class="button" style="margin: 10px;" onclick={() => listFiles("images")}>
+                        List image files
                     </button>
-                </li>
-                {/each}
-            </ul>
+
+                    <button class="button" style="margin: 10px;" onclick={() => saveSnapshot()}>
+                        Save an image file
+                    </button>
+
+                    <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("tasks")}>
+                        Delete all task files
+                    </button>
+
+                    <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("images")}>
+                        Delete all image files
+                    </button>
+
+                    <button class="button" style="margin: 10px;" onclick={() => clearAllFiles("maps")}>
+                        Delete all map files
+                    </button>
+                </div>
+
+
+                <div class="grid-item" style="flex-direction: column;">
+                    <div class="task-list">
+                        {#if taskFiles.length > 0}
+                            <h1 class="heading">Image Files</h1>
+
+                                {#each taskFiles as file}
+                                    <div class="task-card">
+                                        {file}
+                                    </div>
+                                {/each}
+
+                        {/if}
+                    </div>
+
+                    {#if selectedFile}
+                        <div style="margin: 10px;">
+                        <h3>Contents of {selectedFile}</h3>
+                        <pre>{fileContents}</pre>
+                        </div>
+                    {/if}
+                </div>
+            </div>
         </div>
-        {/if}
     </div>
 
-    {#if selectedFile}
-        <div style="margin: 10px;">
-        <h3>Contents of {selectedFile}</h3>
-        <pre>{fileContents}</pre>
+
+
+    <div class="grid-item" style="flex-direction: column;">
+        <div class="container">
+
+            <h1 class="heading"> <span> Checks </span> </h1>
+
+            <button class="button" style="margin: 10px;" onclick={ping}>
+                Ping Rust
+            </button>
+
+            <button class="button" style="margin: 10px;" onclick={() => pingUdp()}>
+                Ping UDP
+            </button>
+
         </div>
-    {/if}
+    </div>
+
+
+    <div class="grid-item" style="flex-direction: column;">
+        <div class="container">
+            <h1 class="heading"> <span> My Info </span> </h1>
+
+            <button class="button" style="margin: 10px;" onclick={clearCache}>
+                Clear cache
+            </button>
+
+            <button class="button" style="margin: 10px" onclick={() => whereIsTheModel()}>
+                Where is the model
+            </button>
+
+            <button class="button" onclick={getIP}>
+                What is my IP
+            </button>
+
+            {#if loading}
+            <p>Loading...</p>
+            {/if}
+
+            {#if ip}
+            <p>Your IP: {ip}</p>
+            {/if}
+
+            {#if error}
+            <p style="color:red">{error}</p>
+            {/if}
+
+        </div>
+    </div>
+
+
+    <div class="grid-item" style="flex-direction: column;">
+        <div class="container">
+            <h1 class="heading"> <span> Dummy Data</span> </h1>
+
+            <button class="button" style="margin: 10px;" onclick={() => startGenDummy()}>
+                Start dummy general stream
+            </button>
+
+            <button class="button" style="margin: 10px;" onclick={() => stopGenDummy()}>
+                Stop dummy general stream
+            </button>
+
+            <button class="button" style="margin: 10px;" onclick={() => startObjectDummy()}>
+                Start dummy object stream
+            </button>
+
+        </div>
+    </div>
 
 </div>

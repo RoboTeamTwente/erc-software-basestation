@@ -87,7 +87,7 @@ pub fn stream_table() -> Vec<StreamSpec> {
         StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_ctrl },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_arm_diag },
         StreamSpec { interval: Duration::from_millis(100), generator: gen_arm_feedback },
-        StreamSpec { interval: Duration::from_millis(100),  generator: gen_arm_pos },
+        StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_pos },
         StreamSpec { interval: Duration::from_millis(200), generator: gen_arm_target },
         StreamSpec { interval: Duration::from_millis(300), generator: gen_arm_obstructions },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_drive_diag },

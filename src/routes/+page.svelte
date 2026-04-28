@@ -15,6 +15,7 @@
     import TaskCompletion from '$lib/components/task_completion.svelte';
     import IMU from '$lib/components/imu.svelte';
     import Model from '$lib/components/model_scene.svelte';
+    import Instructions from '$lib/components/instructions.svelte';
 
 
 // ----- STATES -----
@@ -54,7 +55,7 @@
 <div class="grid">
 
     <div class="grid-item" style="padding-right: 0">
-        <Double_Video camera1={cam1} camera2={cam2} />
+        <Double_Video />
     </div>
 
 
@@ -73,9 +74,7 @@
         </div>
 
         <div class="grid-item">
-        <div class="container">
-            <h1 class="heading">Short Instructions for controls</h1>
-        </div>
+            <Instructions />
         </div>
 
         <div class="grid-item">
