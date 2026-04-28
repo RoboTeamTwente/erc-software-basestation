@@ -242,6 +242,15 @@ pub async fn run_listener(
                     app_handle.emit("rover-localization-update", &msg);
                 }
             }
+            Payload::ManualDrive(msg)=> {
+                println!("Manual drive command received: {:?}", msg);
+            }
+            Payload::ManualBrake(msg)=> {
+                println!("Manual brake command received: {:?}", msg);
+            }
+            other => {
+                eprintln!("Unhandled payload: {:?}", other);
+            }
         }
     }
 }

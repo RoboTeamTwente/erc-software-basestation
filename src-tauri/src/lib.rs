@@ -36,7 +36,6 @@ pub fn run() {
             commands::file_management::save_snapshot,
             commands::checks::ping,
             commands::checks::clear_cache,
-            commands::controller::pressed_key,
             commands::rover_states::get_state,
             commands::rover_states::set_state,
             commands::rover_commands::request_coordinates,

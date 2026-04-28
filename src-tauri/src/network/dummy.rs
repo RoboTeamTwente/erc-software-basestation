@@ -291,6 +291,36 @@ fn gen_sensor_diag(t: f32) -> pb_envelope::Payload {
             utc_timestamp: 0,
         }),
 
+        load_cell: Some(SensorBoardLoadCellInfo {
+            sensor_index: 1,
+            force_newtons: 2.5 + (t * 0.1).sin() * 0.5,
+            mass_grams: 250.0 + (t * 0.1).cos() * 50.0,
+            raw_counts: 1024,
+
+            // Calibration status and parameters
+            is_calibrated: true,
+            scale_newtons_per_count: 6.0,
+            tare_offset_counts: 7,
+
+            state: SensorState::SensorOperating as i32,
+            error_code: LoadCellErrorCode::LoadCellNoError as i32,
+        }),
+
+        pressure_sensor: Some(SensorBoardPressureInfo {
+            sensor_index: 1, // 0-based index of the pressure sensor
+
+            // Pressure data
+            pressure_kpa: 2.0, // Pressure in kilopascals
+            temperature_c: 3.0, // Temperature in Celsius (if available)
+            voltage: 4.0, // Sensor output voltage (if available)
+
+            // Calibration status
+            is_calibrated: true,
+
+            state: SensorState::SensorOperating as i32,
+            error_code: PressureErrorCode::PressureNoError as i32,
+        }),
+
         board_temperature: 42.0 + (t * 0.03).sin() * 2.0,
         board_voltage: 3.3 + (t * 0.05).cos() * 0.02,
     })
