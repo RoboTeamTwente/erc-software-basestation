@@ -8,7 +8,7 @@ use crate::commands::rover_commands::RoverAddress;
 use crate::commands::rover_states::RoverState;
 use crate::network::sender;
 use crate::network::service::UdpService;
-use crate::proto::packets::{pb_envelope, BasestationManualBrake, BasestationManualDrive, PbEnvelope};
+use crate::proto::packets::*;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -22,6 +22,52 @@ const MOMENTARY_BRAKE_DURATION: Duration = Duration::from_millis(500);
 /// Acts as a keepalive so the rover never silently loses commanded state.
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(2);
 
+/// Time in seconds for a ramped axis to travel from 0.0 to ±1.0 when held.
+const RAMP_DURATION_SECS: f32 = 1.0;
+
+/// Tick rate for the ramp thread — how often the ramp value is incremented (~60 Hz).
+const RAMP_TICK_MS: u64 = 16;
+
+// ─── Ramp axis ────────────────────────────────────────────────────────────────
+
+/// Tracks a boolean-driven axis that ramps from 0.0 toward ±1.0 while held,
+/// and snaps back to 0.0 on release. Thread-safe via Arc<Mutex<RampAxis>>.
+#[derive(Default)]
+struct RampAxis {
+    /// Current normalised value in [-1.0, 1.0].
+    value: f32,
+    /// +1.0 while the positive button is held, -1.0 for negative, 0.0 when released.
+    direction: f32,
+}
+
+impl RampAxis {
+    /// Called on button press. `direction` must be +1.0 or -1.0.
+    fn press(&mut self, direction: f32) {
+        self.direction = direction;
+    }
+
+    /// Called on button release — immediately zeros both value and direction.
+    fn release(&mut self) {
+        self.direction = 0.0;
+        self.value = 0.0;
+    }
+
+    /// Advances the ramp by one tick. Returns the new value when it changed.
+    fn tick(&mut self) -> Option<f32> {
+        if self.direction == 0.0 {
+            return None;
+        }
+        let step = self.direction * (RAMP_TICK_MS as f32 / 1000.0) / RAMP_DURATION_SECS;
+        let new_value = (self.value + step).clamp(-1.0, 1.0);
+        if (new_value - self.value).abs() > f32::EPSILON {
+            self.value = new_value;
+            Some(new_value)
+        } else {
+            None
+        }
+    }
+}
+
 // ─── Shared command state ─────────────────────────────────────────────────────
 
 /// State used while pickup_mode is false (normal driving).
@@ -32,10 +78,81 @@ struct DriveState {
 }
 
 /// State used while pickup_mode is true (arm control).
-/// All fields map to sint32 just like DriveAxes.
-#[derive(Clone, Default)]
+/// Analog axes are deadzoned and threshold-filtered.
+/// Z and speed are driven by boolean buttons ramped over time via [`RampAxis`].
 struct PickupState {
-    // TODO: left stick X/Y, right stick X/Y, D-pad up/down, D-pad right/left
+    /// Right stick X -> end effector velocity X (positive = right, negative = left).
+    x: f32,
+    /// Right stick Y -> end effector velocity Y (positive = forward, negative = backward).
+    y: f32,
+    /// D-pad up/down -> end effector velocity Z, ramped. Positive = up, negative = down.
+    z: f32,
+    /// Left stick X  -> rotation (positive = clockwise, negative = counterclockwise).
+    rotate: f32,
+    /// Left stick Y  -> flick (positive = forward, negative = backward).
+    flick: f32,
+    /// LeftTrigger (close, -1.0) / RightTrigger (open, +1.0) -> gripper speed, ramped.
+    speed: f32,
+    /// Ramp state for Z (DPadUp = positive, DPadDown = negative).
+    z_ramp: Arc<Mutex<RampAxis>>,
+    /// Ramp state for gripper speed (LeftTrigger = negative, RightTrigger = positive).
+    speed_ramp: Arc<Mutex<RampAxis>>,
+}
+
+impl Default for PickupState {
+    fn default() -> Self {
+        Self {
+            x: 0.0, y: 0.0, z: 0.0,
+            rotate: 0.0, flick: 0.0, speed: 0.0,
+            z_ramp: Arc::new(Mutex::new(RampAxis::default())),
+            speed_ramp: Arc::new(Mutex::new(RampAxis::default())),
+        }
+    }
+}
+
+impl Clone for PickupState {
+    fn clone(&self) -> Self {
+        Self {
+            x: self.x, y: self.y, z: self.z,
+            rotate: self.rotate, flick: self.flick, speed: self.speed,
+            // Arc clones share the same ramp instances so the ramp threads
+            // always write to the same Mutex the event loop reads.
+            z_ramp: Arc::clone(&self.z_ramp),
+            speed_ramp: Arc::clone(&self.speed_ramp),
+        }
+    }
+}
+
+impl PickupState {
+    /// Updates an analog field if the deadzoned delta exceeds [`AXIS_CHANGE_THRESHOLD`].
+    /// Z and speed are excluded — they are driven by ramped boolean inputs, not axes.
+    fn update_axis(&mut self, axis: Axis, raw: f32) -> bool {
+        let value = apply_deadzone(raw);
+        let (current, new_val) = match axis {
+            Axis::RightStickX => (&mut self.x,      value),
+            Axis::RightStickY => (&mut self.y,      value),
+            Axis::LeftStickX  => (&mut self.rotate, value),
+            Axis::LeftStickY  => (&mut self.flick,  value),
+            _ => return false,
+        };
+        if (new_val - *current).abs() >= AXIS_CHANGE_THRESHOLD {
+            *current = new_val;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn to_proto(&self) -> BasestationManualArmMovement {
+        BasestationManualArmMovement {
+            x:      scale_to_sint32(self.x),
+            y:      scale_to_sint32(self.y),
+            z:      scale_to_sint32(self.z),
+            rotate: scale_to_sint32(self.rotate),
+            flick:  scale_to_sint32(self.flick),
+            speed:  scale_to_sint32(self.speed),
+        }
+    }
 }
 
 /// Top-level shared state, switched on pickup_mode.
@@ -126,34 +243,81 @@ async fn send_brake(socket: Arc<tokio::net::UdpSocket>, target: String, engaged:
     }
 }
 
+async fn send_arm(socket: Arc<tokio::net::UdpSocket>, target: String, arm: BasestationManualArmMovement) {
+    let envelope = PbEnvelope {
+        payload: Some(pb_envelope::Payload::ManualArm(arm)),
+    };
+    if let Err(e) = sender::send_envelope(&socket, &target, envelope).await {
+        eprintln!("[controller] Failed to send arm command: {e}");
+    }
+}
+
 // ─── Dispatch helpers (sync -> async bridge) ──────────────────────────────────
 
 fn dispatch_drive(app: &AppHandle, drive: BasestationManualDrive) {
     let socket = app.state::<UdpService>().socket();
     let target = app.state::<RoverAddress>().ip.clone();
-    println!("[controller] Drive -> fwd={} turn={}", drive.forward_backward, drive.turn);
+    //println!("[controller] Drive -> fwd={} turn={}", drive.forward_backward, drive.turn);
     tauri::async_runtime::spawn(async move { send_drive(socket, target, drive).await });
 }
 
 fn dispatch_brake(app: &AppHandle, engaged: bool) {
     let socket = app.state::<UdpService>().socket();
     let target = app.state::<RoverAddress>().ip.clone();
-    println!("[controller] Brake -> {}", if engaged { "ENGAGED" } else { "released" });
+    //println!("[controller] Brake -> {}", if engaged { "ENGAGED" } else { "released" });
     tauri::async_runtime::spawn(async move { send_brake(socket, target, engaged).await });
 }
 
-// ─── Pickup mode handlers (stubs) ─────────────────────────────────────────────
-
-/// Called on every axis/button event while pickup_mode is true.
-/// TODO: map left stick X/Y, right stick X/Y, D-pad up/down, D-pad right/left
-/// to their respective sint32 proto fields and dispatch.
-fn handle_pickup_axis(_app: &AppHandle, _state: &mut PickupState, _axis: Axis, _raw: f32) {
-    // TODO
+fn dispatch_arm(app: &AppHandle, arm: BasestationManualArmMovement) {
+    let socket = app.state::<UdpService>().socket();
+    let target = app.state::<RoverAddress>().ip.clone();
+    // println!(
+    //     "[controller] Arm -> x={} y={} z={} rotate={} flick={} speed={}",
+    //     arm.x, arm.y, arm.z, arm.rotate, arm.flick, arm.speed
+    // );
+    tauri::async_runtime::spawn(async move { send_arm(socket, target, arm).await });
 }
 
-/// TODO: map D-pad and any pickup-specific buttons.
+// ─── Pickup mode handlers ─────────────────────────────────────────────────────
+
+/// Routes axis events to the arm state and dispatches when a meaningful change occurs.
+///
+/// Mapping:
+///   Right stick X/Y  -> end effector X/Y velocity
+///   D-pad Y          -> end effector Z velocity (up/down)
+///   Left stick X     -> rotate
+///   Left stick Y     -> flick
+///   Speed is set via trigger buttons in the event loop (LeftTrigger2 / RightTrigger2).
+fn handle_pickup_axis(app: &AppHandle, state: &mut PickupState, axis: Axis, raw: f32) {
+    if state.update_axis(axis, raw) {
+        dispatch_arm(app, state.to_proto());
+    }
+}
+
+/// Routes button events that are specific to pickup/arm mode.
+/// DPad up/down (Z ramp) are handled at the call site where `shared` is available.
+/// Start and Select are handled globally before this is called.
 fn handle_pickup_button(_app: &AppHandle, _state: &mut PickupState, _button: Button) {
-    // TODO
+    // Additional pickup button mappings go here.
+}
+
+/// Spawns a thread that ticks `ramp` at [`RAMP_TICK_MS`] and calls `on_tick(value)`
+/// each time the value changes, until the ramp direction becomes 0.0 (released).
+fn spawn_ramp_thread<F>(ramp: Arc<Mutex<RampAxis>>, on_tick: F)
+where
+    F: Fn(f32) + Send + 'static,
+{
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_millis(RAMP_TICK_MS));
+        let mut r = ramp.lock().unwrap();
+        if r.direction == 0.0 {
+            break;
+        }
+        if let Some(value) = r.tick() {
+            drop(r); // release lock before calling on_tick
+            on_tick(value);
+        }
+    });
 }
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
@@ -171,8 +335,10 @@ pub fn start_controller_listener(app: AppHandle) {
 
             if is_pickup_mode(&app) {
                 // Pickup heartbeat: brake is always engaged during pickup (not toggleable).
-                // TODO: also re-send arm state once handle_pickup_axis is implemented.
+                // Also re-sends the current arm state so the rover doesn't lose velocity commands.
+                let state = shared.lock().unwrap().clone();
                 dispatch_brake(&app, true);
+                dispatch_arm(&app, state.pickup.to_proto());
             } else {
                 // Drive heartbeat: re-send current drive axes and brake state.
                 let state = shared.lock().unwrap().clone();
@@ -209,58 +375,174 @@ pub fn start_controller_listener(app: AppHandle) {
                         }
                     }
 
-                    // Left trigger: toggle latching brake (drive mode only).
-                    // First press engages; second press disengages.
-                    EventType::ButtonPressed(Button::LeftTrigger2, _) => {
-                        if is_pickup_mode(&app) { continue; }
-
-                        let mut state = shared.lock().unwrap();
-                        state.drive.brake = !state.drive.brake;
-                        let engaged = state.drive.brake;
-                        drop(state);
-
-                        println!(
-                            "[controller] Left trigger -> brake {}",
-                            if engaged { "ENGAGED (latched)" } else { "DISENGAGED" }
-                        );
-                        dispatch_brake(&app, engaged);
+                    // Left trigger (LeftTrigger / trigger 1):
+                    //   Drive mode  — toggle latching brake.
+                    //   Pickup mode — ramp gripper speed toward -1.0 (close) while held.
+                    EventType::ButtonPressed(Button::LeftTrigger, _) => {
+                        if is_pickup_mode(&app) {
+                            //println!("[controller] Left trigger -> gripper ramping CLOSE");
+                            let speed_ramp = Arc::clone(&shared.lock().unwrap().pickup.speed_ramp);
+                            speed_ramp.lock().unwrap().press(-1.0);
+                            spawn_ramp_thread(Arc::clone(&speed_ramp), {
+                                let shared = Arc::clone(&shared);
+                                let app = app.clone();
+                                move |v| {
+                                    shared.lock().unwrap().pickup.speed = v;
+                                    dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
+                                }
+                            });
+                        } else {
+                            let mut state = shared.lock().unwrap();
+                            state.drive.brake = !state.drive.brake;
+                            let engaged = state.drive.brake;
+                            drop(state);
+                            // println!(
+                            //     "[controller] Left trigger -> brake {}",
+                            //     if engaged { "ENGAGED (latched)" } else { "DISENGAGED" }
+                            // );
+                            dispatch_brake(&app, engaged);
+                        }
                     }
-                    // Release is ignored: the latch is toggled on press only.
+                    // Release: stop ramping and zero gripper speed (pickup) or ignore (drive latch).
+                    EventType::ButtonReleased(Button::LeftTrigger, _) => {
+                        if is_pickup_mode(&app) {
+                            //println!("[controller] Left trigger released -> gripper speed 0");
+                            let state = shared.lock().unwrap();
+                            state.pickup.speed_ramp.lock().unwrap().release();
+                            drop(state);
+                            let mut state = shared.lock().unwrap();
+                            state.pickup.speed = 0.0;
+                            let proto = state.pickup.to_proto();
+                            drop(state);
+                            dispatch_arm(&app, proto);
+                        }
+                        // Drive mode: release is intentionally ignored (latch stays).
+                    }
+
+                    // Right trigger (RightTrigger / trigger 1):
+                    //   Drive mode  — momentary brake.
+                    //   Pickup mode — ramp gripper speed toward +1.0 (open) while held.
+                    EventType::ButtonPressed(Button::RightTrigger, _) => {
+                        if is_pickup_mode(&app) {
+                            //println!("[controller] Right trigger -> gripper ramping OPEN");
+                            let speed_ramp = Arc::clone(&shared.lock().unwrap().pickup.speed_ramp);
+                            speed_ramp.lock().unwrap().press(1.0);
+                            spawn_ramp_thread(Arc::clone(&speed_ramp), {
+                                let shared = Arc::clone(&shared);
+                                let app = app.clone();
+                                move |v| {
+                                    shared.lock().unwrap().pickup.speed = v;
+                                    dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
+                                }
+                            });
+                        } else {
+                            //println!("[controller] Right trigger -> brake ENGAGED (momentary)");
+                            shared.lock().unwrap().drive.brake = true;
+                            dispatch_brake(&app, true);
+
+                            let shared = Arc::clone(&shared);
+                            let app = app.clone();
+                            thread::spawn(move || {
+                                thread::sleep(MOMENTARY_BRAKE_DURATION);
+                                //println!("[controller] Momentary brake released");
+                                shared.lock().unwrap().drive.brake = false;
+                                dispatch_brake(&app, false);
+                            });
+                        }
+                    }
+                    // Release: stop ramping and zero gripper speed (pickup) or ignore (drive).
+                    EventType::ButtonReleased(Button::RightTrigger, _) => {
+                        if is_pickup_mode(&app) {
+                            //println!("[controller] Right trigger released -> gripper speed 0");
+                            let state = shared.lock().unwrap();
+                            state.pickup.speed_ramp.lock().unwrap().release();
+                            drop(state);
+                            let mut state = shared.lock().unwrap();
+                            state.pickup.speed = 0.0;
+                            let proto = state.pickup.to_proto();
+                            drop(state);
+                            dispatch_arm(&app, proto);
+                        }
+                    }
+
+                    // Left trigger 2 (drive mode only — kept for brake toggle).
+                    EventType::ButtonPressed(Button::LeftTrigger2, _) => {
+                        if !is_pickup_mode(&app) {
+                            let mut state = shared.lock().unwrap();
+                            state.drive.brake = !state.drive.brake;
+                            let engaged = state.drive.brake;
+                            drop(state);
+                            // println!(
+                            //     "[controller] Left trigger2 -> brake {}",
+                            //     if engaged { "ENGAGED (latched)" } else { "DISENGAGED" }
+                            // );
+                            dispatch_brake(&app, engaged);
+                        }
+                    }
                     EventType::ButtonReleased(Button::LeftTrigger2, _) => {}
 
-                    // Right trigger: momentary brake (drive mode only).
-                    // Engages for MOMENTARY_BRAKE_DURATION then auto-releases.
-                    EventType::ButtonPressed(Button::RightTrigger2, _) => {
-                        if is_pickup_mode(&app) { continue; }
-
-                        println!("[controller] Right trigger -> brake ENGAGED (momentary)");
-                        shared.lock().unwrap().drive.brake = true;
-                        dispatch_brake(&app, true);
-
-                        let shared = Arc::clone(&shared);
-                        let app = app.clone();
-                        thread::spawn(move || {
-                            thread::sleep(MOMENTARY_BRAKE_DURATION);
-                            println!("[controller] Momentary brake released");
-                            shared.lock().unwrap().drive.brake = false;
-                            dispatch_brake(&app, false);
-                        });
-                    }
-
                     // All other buttons — Start/Select work in both modes.
-                    // In pickup mode, additional inputs are also routed to the pickup handler.
+                    // DPad up/down control Z ramp in pickup mode.
                     EventType::ButtonPressed(button, _) => {
-                        println!("[controller] Button pressed:  {button:?} (pad {id})");
+                        //ln!("[controller] Button pressed:  {button:?} (pad {id})");
 
                         handle_button_pressed(&app, button);
 
                         if is_pickup_mode(&app) {
-                            let mut state = shared.lock().unwrap();
-                            handle_pickup_button(&app, &mut state.pickup, button);
+                            match button {
+                                // D-pad up: ramp Z toward +1.0 (end effector up).
+                                Button::DPadUp => {
+                                    //println!("[controller] DPad up -> Z ramping UP");
+                                    let z_ramp = Arc::clone(&shared.lock().unwrap().pickup.z_ramp);
+                                    z_ramp.lock().unwrap().press(1.0);
+                                    spawn_ramp_thread(Arc::clone(&z_ramp), {
+                                        let shared = Arc::clone(&shared);
+                                        let app = app.clone();
+                                        move |v| {
+                                            shared.lock().unwrap().pickup.z = v;
+                                            dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
+                                        }
+                                    });
+                                }
+                                // D-pad down: ramp Z toward -1.0 (end effector down).
+                                Button::DPadDown => {
+                                    //println!("[controller] DPad down -> Z ramping DOWN");
+                                    let z_ramp = Arc::clone(&shared.lock().unwrap().pickup.z_ramp);
+                                    z_ramp.lock().unwrap().press(-1.0);
+                                    spawn_ramp_thread(Arc::clone(&z_ramp), {
+                                        let shared = Arc::clone(&shared);
+                                        let app = app.clone();
+                                        move |v| {
+                                            shared.lock().unwrap().pickup.z = v;
+                                            dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
+                                        }
+                                    });
+                                }
+                                _ => {
+                                    let mut state = shared.lock().unwrap();
+                                    handle_pickup_button(&app, &mut state.pickup, button);
+                                }
+                            }
                         }
                     }
                     EventType::ButtonReleased(button, _) => {
-                        println!("[controller] Button released: {button:?} (pad {id})");
+                        //println!("[controller] Button released: {button:?} (pad {id})");
+
+                        if is_pickup_mode(&app) {
+                            match button {
+                                // D-pad release: stop Z ramp and zero Z immediately.
+                                Button::DPadUp | Button::DPadDown => {
+                                    //println!("[controller] DPad released -> Z = 0");
+                                    let mut state = shared.lock().unwrap();
+                                    state.pickup.z_ramp.lock().unwrap().release();
+                                    state.pickup.z = 0.0;
+                                    let proto = state.pickup.to_proto();
+                                    drop(state);
+                                    dispatch_arm(&app, proto);
+                                }
+                                _ => {}
+                            }
+                        }
                     }
 
                     EventType::Connected    => println!("[controller] Gamepad {id} connected"),

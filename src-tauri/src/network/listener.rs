@@ -248,6 +248,9 @@ pub async fn run_listener(
             Payload::ManualBrake(msg)=> {
                 println!("Manual brake command received: {:?}", msg);
             }
+            Payload::ManualArm(msg)=> {
+                println!("Manual arm command received: {:?}", msg);
+            }
             other => {
                 eprintln!("Unhandled payload: {:?}", other);
             }
