@@ -221,6 +221,16 @@ fn is_pickup_mode(app: &AppHandle) -> bool {
     *app.state::<RoverState>().pickup_mode.lock().unwrap()
 }
 
+fn is_drive_manual_mode(app: &AppHandle) -> bool {
+    //println!("[controller] Checking drive manual mode: {}", *app.state::<RoverState>().drive_manual_mode.lock().unwrap());
+    *app.state::<RoverState>().drive_manual_mode.lock().unwrap()
+}
+
+fn is_arm_manual_mode(app: &AppHandle) -> bool {
+    //println!("[controller] Checking arm manual mode: {}", *app.state::<RoverState>().arm_manual_mode.lock().unwrap());
+    *app.state::<RoverState>().arm_manual_mode.lock().unwrap()
+}
+
 // ─── UDP senders ──────────────────────────────────────────────────────────────
 
 async fn send_drive(socket: Arc<tokio::net::UdpSocket>, target: String, drive: BasestationManualDrive) {
@@ -255,27 +265,43 @@ async fn send_arm(socket: Arc<tokio::net::UdpSocket>, target: String, arm: Bases
 // ─── Dispatch helpers (sync -> async bridge) ──────────────────────────────────
 
 fn dispatch_drive(app: &AppHandle, drive: BasestationManualDrive) {
+    if is_pickup_mode(app) || !is_drive_manual_mode(app) {
+        return;
+    }
+
     let socket = app.state::<UdpService>().socket();
     let target = app.state::<RoverAddress>().ip.clone();
-    //println!("[controller] Drive -> fwd={} turn={}", drive.forward_backward, drive.turn);
-    tauri::async_runtime::spawn(async move { send_drive(socket, target, drive).await });
+
+    tauri::async_runtime::spawn(async move {
+        send_drive(socket, target, drive).await
+    });
 }
 
 fn dispatch_brake(app: &AppHandle, engaged: bool) {
+    // Brake rules depend on mode — enforce both
+    if !is_drive_manual_mode(app) {
+        return;
+    }
+
     let socket = app.state::<UdpService>().socket();
     let target = app.state::<RoverAddress>().ip.clone();
-    //println!("[controller] Brake -> {}", if engaged { "ENGAGED" } else { "released" });
-    tauri::async_runtime::spawn(async move { send_brake(socket, target, engaged).await });
+
+    tauri::async_runtime::spawn(async move {
+        send_brake(socket, target, engaged).await
+    });
 }
 
 fn dispatch_arm(app: &AppHandle, arm: BasestationManualArmMovement) {
+    if !is_pickup_mode(app) || !is_arm_manual_mode(app) {
+        return;
+    }
+
     let socket = app.state::<UdpService>().socket();
     let target = app.state::<RoverAddress>().ip.clone();
-    // println!(
-    //     "[controller] Arm -> x={} y={} z={} rotate={} flick={} speed={}",
-    //     arm.x, arm.y, arm.z, arm.rotate, arm.flick, arm.speed
-    // );
-    tauri::async_runtime::spawn(async move { send_arm(socket, target, arm).await });
+
+    tauri::async_runtime::spawn(async move {
+        send_arm(socket, target, arm).await
+    });
 }
 
 // ─── Pickup mode handlers ─────────────────────────────────────────────────────
@@ -324,7 +350,7 @@ where
 
 pub fn start_controller_listener(app: AppHandle) {
     let shared = Arc::new(Mutex::new(CommandState::default()));
-
+ 
     // Heartbeat thread: every HEARTBEAT_INTERVAL, re-sends the relevant state
     // based on the current mode so the rover never silently loses commanded state.
     {
@@ -332,7 +358,7 @@ pub fn start_controller_listener(app: AppHandle) {
         let app = app.clone();
         thread::spawn(move || loop {
             thread::sleep(HEARTBEAT_INTERVAL);
-
+ 
             if is_pickup_mode(&app) {
                 // Pickup heartbeat: brake is always engaged during pickup (not toggleable).
                 // Also re-sends the current arm state so the rover doesn't lose velocity commands.
@@ -347,26 +373,29 @@ pub fn start_controller_listener(app: AppHandle) {
             }
         });
     }
-
+ 
     // Event thread: processes gilrs events and dispatches commands.
     thread::spawn(move || {
         let mut gilrs = Gilrs::new().expect("Failed to initialise gilrs");
-
+ 
         for (_id, gamepad) in gilrs.gamepads() {
             println!("[controller] Found gamepad: {}", gamepad.name());
         }
-
+ 
         loop {
             while let Some(Event { id, event, .. }) = gilrs.next_event() {
                 match event {
                     // Axis events are routed based on current mode.
+                    // Dispatching is suppressed when the relevant manual mode is inactive.
                     EventType::AxisChanged(axis, value, _) => {
                         //println!("[controller] Axis {axis:?} = {value:.3} (pad {id})");
-
+ 
                         let mut state = shared.lock().unwrap();
                         if is_pickup_mode(&app) {
-                            handle_pickup_axis(&app, &mut state.pickup, axis, value);
-                        } else {
+                            if is_arm_manual_mode(&app) {
+                                handle_pickup_axis(&app, &mut state.pickup, axis, value);
+                            }
+                        } else if is_drive_manual_mode(&app) {
                             if state.drive.axes.update(axis, value) {
                                 let proto = state.drive.axes.to_proto();
                                 drop(state);
@@ -374,11 +403,12 @@ pub fn start_controller_listener(app: AppHandle) {
                             }
                         }
                     }
-
+ 
                     // Left trigger (LeftTrigger / trigger 1):
                     //   Drive mode  — toggle latching brake.
                     //   Pickup mode — ramp gripper speed toward -1.0 (close) while held.
                     EventType::ButtonPressed(Button::LeftTrigger, _) => {
+                        if is_pickup_mode(&app) && !is_arm_manual_mode(&app) { continue; }
                         if is_pickup_mode(&app) {
                             //println!("[controller] Left trigger -> gripper ramping CLOSE");
                             let speed_ramp = Arc::clone(&shared.lock().unwrap().pickup.speed_ramp);
@@ -405,7 +435,7 @@ pub fn start_controller_listener(app: AppHandle) {
                     }
                     // Release: stop ramping and zero gripper speed (pickup) or ignore (drive latch).
                     EventType::ButtonReleased(Button::LeftTrigger, _) => {
-                        if is_pickup_mode(&app) {
+                        if is_pickup_mode(&app) && is_arm_manual_mode(&app) {
                             //println!("[controller] Left trigger released -> gripper speed 0");
                             let state = shared.lock().unwrap();
                             state.pickup.speed_ramp.lock().unwrap().release();
@@ -418,11 +448,13 @@ pub fn start_controller_listener(app: AppHandle) {
                         }
                         // Drive mode: release is intentionally ignored (latch stays).
                     }
-
+ 
                     // Right trigger (RightTrigger / trigger 1):
                     //   Drive mode  — momentary brake.
                     //   Pickup mode — ramp gripper speed toward +1.0 (open) while held.
                     EventType::ButtonPressed(Button::RightTrigger, _) => {
+                        if is_pickup_mode(&app) && !is_arm_manual_mode(&app) { continue; }
+                        if !is_pickup_mode(&app) && !is_drive_manual_mode(&app) { continue; }
                         if is_pickup_mode(&app) {
                             //println!("[controller] Right trigger -> gripper ramping OPEN");
                             let speed_ramp = Arc::clone(&shared.lock().unwrap().pickup.speed_ramp);
@@ -439,7 +471,7 @@ pub fn start_controller_listener(app: AppHandle) {
                             //println!("[controller] Right trigger -> brake ENGAGED (momentary)");
                             shared.lock().unwrap().drive.brake = true;
                             dispatch_brake(&app, true);
-
+ 
                             let shared = Arc::clone(&shared);
                             let app = app.clone();
                             thread::spawn(move || {
@@ -452,7 +484,7 @@ pub fn start_controller_listener(app: AppHandle) {
                     }
                     // Release: stop ramping and zero gripper speed (pickup) or ignore (drive).
                     EventType::ButtonReleased(Button::RightTrigger, _) => {
-                        if is_pickup_mode(&app) {
+                        if is_pickup_mode(&app) && is_arm_manual_mode(&app) {
                             //println!("[controller] Right trigger released -> gripper speed 0");
                             let state = shared.lock().unwrap();
                             state.pickup.speed_ramp.lock().unwrap().release();
@@ -464,9 +496,10 @@ pub fn start_controller_listener(app: AppHandle) {
                             dispatch_arm(&app, proto);
                         }
                     }
-
+ 
                     // Left trigger 2 (drive mode only — kept for brake toggle).
                     EventType::ButtonPressed(Button::LeftTrigger2, _) => {
+                        if !is_pickup_mode(&app) && !is_drive_manual_mode(&app) { continue; }
                         if !is_pickup_mode(&app) {
                             let mut state = shared.lock().unwrap();
                             state.drive.brake = !state.drive.brake;
@@ -480,15 +513,15 @@ pub fn start_controller_listener(app: AppHandle) {
                         }
                     }
                     EventType::ButtonReleased(Button::LeftTrigger2, _) => {}
-
+ 
                     // All other buttons — Start/Select work in both modes.
                     // DPad up/down control Z ramp in pickup mode.
                     EventType::ButtonPressed(button, _) => {
-                        //ln!("[controller] Button pressed:  {button:?} (pad {id})");
-
+                        //println!("[controller] Button pressed:  {button:?} (pad {id})");
+ 
                         handle_button_pressed(&app, button);
-
-                        if is_pickup_mode(&app) {
+ 
+                        if is_pickup_mode(&app) && is_arm_manual_mode(&app) {
                             match button {
                                 // D-pad up: ramp Z toward +1.0 (end effector up).
                                 Button::DPadUp => {
@@ -527,8 +560,8 @@ pub fn start_controller_listener(app: AppHandle) {
                     }
                     EventType::ButtonReleased(button, _) => {
                         //println!("[controller] Button released: {button:?} (pad {id})");
-
-                        if is_pickup_mode(&app) {
+ 
+                        if is_pickup_mode(&app) && is_arm_manual_mode(&app) {
                             match button {
                                 // D-pad release: stop Z ramp and zero Z immediately.
                                 Button::DPadUp | Button::DPadDown => {
@@ -544,18 +577,19 @@ pub fn start_controller_listener(app: AppHandle) {
                             }
                         }
                     }
-
+ 
                     EventType::Connected    => println!("[controller] Gamepad {id} connected"),
                     EventType::Disconnected => println!("[controller] Gamepad {id} disconnected"),
-
+ 
                     _ => {}
                 }
             }
-
+ 
             thread::sleep(Duration::from_millis(8));
         }
     });
 }
+
 
 // ─── Drive mode button handler ────────────────────────────────────────────────
 
