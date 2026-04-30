@@ -408,7 +408,6 @@ pub fn start_controller_listener(app: AppHandle) {
                     //   Drive mode  — toggle latching brake.
                     //   Pickup mode — ramp gripper speed toward -1.0 (close) while held.
                     EventType::ButtonPressed(Button::LeftTrigger, _) => {
-                        if is_pickup_mode(&app) && !is_arm_manual_mode(&app) { continue; }
                         if is_pickup_mode(&app) {
                             //println!("[controller] Left trigger -> gripper ramping CLOSE");
                             let speed_ramp = Arc::clone(&shared.lock().unwrap().pickup.speed_ramp);
@@ -453,8 +452,6 @@ pub fn start_controller_listener(app: AppHandle) {
                     //   Drive mode  — momentary brake.
                     //   Pickup mode — ramp gripper speed toward +1.0 (open) while held.
                     EventType::ButtonPressed(Button::RightTrigger, _) => {
-                        if is_pickup_mode(&app) && !is_arm_manual_mode(&app) { continue; }
-                        if !is_pickup_mode(&app) && !is_drive_manual_mode(&app) { continue; }
                         if is_pickup_mode(&app) {
                             //println!("[controller] Right trigger -> gripper ramping OPEN");
                             let speed_ramp = Arc::clone(&shared.lock().unwrap().pickup.speed_ramp);
@@ -467,7 +464,16 @@ pub fn start_controller_listener(app: AppHandle) {
                                     dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
                                 }
                             });
-                        } else {
+                        }
+                    }
+                    // Release: stop ramping and zero gripper speed (pickup) or ignore (drive).
+                    EventType::ButtonReleased(Button::RightTrigger, _) => {
+
+                    }
+
+                    // Right trigger 2 (drive mode only — kept for temporary brake).
+                    EventType::ButtonPressed(Button::RightTrigger2, _) => {
+                        if !is_pickup_mode(&app) {
                             //println!("[controller] Right trigger -> brake ENGAGED (momentary)");
                             shared.lock().unwrap().drive.brake = true;
                             dispatch_brake(&app, true);
@@ -482,24 +488,10 @@ pub fn start_controller_listener(app: AppHandle) {
                             });
                         }
                     }
-                    // Release: stop ramping and zero gripper speed (pickup) or ignore (drive).
-                    EventType::ButtonReleased(Button::RightTrigger, _) => {
-                        if is_pickup_mode(&app) && is_arm_manual_mode(&app) {
-                            //println!("[controller] Right trigger released -> gripper speed 0");
-                            let state = shared.lock().unwrap();
-                            state.pickup.speed_ramp.lock().unwrap().release();
-                            drop(state);
-                            let mut state = shared.lock().unwrap();
-                            state.pickup.speed = 0.0;
-                            let proto = state.pickup.to_proto();
-                            drop(state);
-                            dispatch_arm(&app, proto);
-                        }
-                    }
+                    EventType::ButtonReleased(Button::RightTrigger2, _) => {}
  
                     // Left trigger 2 (drive mode only — kept for brake toggle).
                     EventType::ButtonPressed(Button::LeftTrigger2, _) => {
-                        if !is_pickup_mode(&app) && !is_drive_manual_mode(&app) { continue; }
                         if !is_pickup_mode(&app) {
                             let mut state = shared.lock().unwrap();
                             state.drive.brake = !state.drive.brake;
