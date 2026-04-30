@@ -16,12 +16,6 @@ export type Sample = {
     all_check: boolean,
 }
 
-export type Waypoint = {
-    id: string,
-    lat: number,
-    lng: number,
-}
-
 export type Probe = {
     id: string,
     lat: number,

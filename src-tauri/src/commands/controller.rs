@@ -480,15 +480,21 @@ pub fn start_controller_listener(app: AppHandle) {
  
                             let shared = Arc::clone(&shared);
                             let app = app.clone();
-                            thread::spawn(move || {
-                                thread::sleep(MOMENTARY_BRAKE_DURATION);
-                                //println!("[controller] Momentary brake released");
-                                shared.lock().unwrap().drive.brake = false;
-                                dispatch_brake(&app, false);
-                            });
+                            // thread::spawn(move || {
+                            //     thread::sleep(MOMENTARY_BRAKE_DURATION);
+                            //     //println!("[controller] Momentary brake released");
+                            //     shared.lock().unwrap().drive.brake = false;
+                            //     dispatch_brake(&app, false);
+                            // });
                         }
                     }
-                    EventType::ButtonReleased(Button::RightTrigger2, _) => {}
+                    EventType::ButtonReleased(Button::RightTrigger2, _) => {
+                        if !is_pickup_mode(&app) {
+                            // Drive mode: release brake .
+                            shared.lock().unwrap().drive.brake = false;
+                            dispatch_brake(&app, false);
+                        }
+                    }
  
                     // Left trigger 2 (drive mode only — kept for brake toggle).
                     EventType::ButtonPressed(Button::LeftTrigger2, _) => {

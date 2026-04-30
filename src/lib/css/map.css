@@ -1,0 +1,256 @@
+/* =========================================================
+   MAP VIEWER
+========================================================= */
+
+/* Wraps the map image + overlays — fills the frame below the header */
+.map-container {
+    position: relative;
+    flex: 1;
+    min-height: 0;          /* critical: lets flexbox shrink past content size */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--color-white);
+}
+
+/* The rendered map PNG — scales to fit without cropping */
+.map-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.map-img.crosshair {
+    cursor: crosshair;
+}
+
+/* Live coordinate tooltip (bottom-left of the map container) */
+.coord-overlay {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: var(--color-purple-light);
+    border: 1px solid var(--color-rtpurple);
+    color: black;
+    font-size: 0.72rem;
+    font-family: monospace;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    pointer-events: none;   /* never blocks clicks on the image */
+    z-index: 10;
+}
+
+.coord-overlay .hint {
+    color: #aaa;
+    font-style: italic;
+}
+
+/* Pinned coordinates panel (bottom-right) */
+.pin-list {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: var(--color-purple-light);
+    color: black;
+    border: 1px solid var(--color-rtpurple);
+    font-size: 0.75rem;
+    font-family: monospace;
+    border-radius: 8px;
+    padding: 6px 8px;
+    min-width: 220px;
+    max-height: 40%;
+    overflow-y: auto;
+    z-index: 10;
+}
+
+.pin-header {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-rtpurple);
+    margin-bottom: 4px;
+}
+
+.pin-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.pin-row:last-child {
+    border-bottom: none;
+}
+
+.pin-index {
+    color: var(--color-rtpurple);
+    font-weight: bold;
+    min-width: 24px;
+}
+
+.pin-coord {
+    flex: 1;
+}
+
+.pin-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0.7;
+    color: black;
+}
+
+.pin-action:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.15);
+}
+
+/* Centered status messages (rendering spinner, errors) */
+.center-message {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: #666;
+    font-size: 0.95rem;
+    padding: 1rem;
+}
+
+.center-message.error {
+    color: #c0392b;
+}
+
+.center-message pre {
+    font-size: 0.8rem;
+    background: #f8f0f0;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* 3D badge on file items */
+.badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: var(--color-rtpurple);
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: auto;
+    letter-spacing: 0.04em;
+}
+
+.map-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.spinner {
+    font-size: 1.5rem;
+    animation: spin 1.2s linear infinite;
+    display: inline-block;
+}
+
+/* =========================================================
+   MAP IMAGE ROTATION
+   Forces widest side to be horizontal inside the map-container
+========================================================= */
+
+.map-img.rotated {
+    /* Rotate 90° clockwise so a portrait image becomes landscape */
+    transform: rotate(90deg);
+
+    /*
+     * After rotation the browser still reserves the *original* layout box.
+     * We swap width/height so the rotated image actually fills the container.
+     * The container must be `position: relative` (already the case).
+     */
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    object-fit: contain;
+
+    /* Keep transform origin at centre so the rotation is symmetrical */
+    transform-origin: center center;
+}
+
+
+/* =========================================================
+   NAVIGATION PLAN — extras
+========================================================= */
+
+.navplan-label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.navplan-coord {
+    font-size: 0.78rem;
+    font-family: monospace;
+    color: black;
+    flex: 1;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Section divider above pinned coords */
+.pin-section-header {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: black;
+    padding: 0.5rem 0.75rem 0.25rem;
+}
+
+/* Card for a pinned coordinate waiting to be assigned */
+.pin-card {
+    border: 1px dashed var(--color-rtpurple);
+    background: var(--color-purple-light);
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+/* Row of assign-buttons inside a pin card */
+.pin-actions-row {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+/* Compact button variant for pin actions */
+.button.small {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.78rem;
+    margin: 0;
+    border-radius: 8px;
+}
+
+/* Waypoint card accent */
+.task-card.waypoint {
+    border-left: 3px solid var(--color-rtpurple);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

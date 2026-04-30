@@ -49,6 +49,8 @@ pub fn run() {
             commands::network::start_detection_sim,
             commands::load_model::load_model,
             commands::load_model::debug_resource_dir,
+            commands::map_commands::render_map,
+            commands::map_commands::pixel_to_world,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
