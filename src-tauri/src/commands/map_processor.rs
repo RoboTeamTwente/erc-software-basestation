@@ -4,7 +4,7 @@
 // PNG image coloured by height (Z), and exposes coordinate transforms so the
 // frontend can convert a 2D pixel click back to real-world (X, Y) metres.
 
-use image::{ImageBuffer, Rgb, RgbImage};
+use image::{ImageBuffer, Rgb, RgbImage, imageops};
 use std::path::Path;
 
 // ── Public types shared with Tauri commands ──────────────────────────────────
@@ -24,6 +24,8 @@ pub struct MapMeta {
     pub metres_per_pixel: f64,
     /// Source format detected
     pub format: String,
+    /// Whether the image was rotated to portrait orientation
+    pub rotated: bool,
 }
 
 /// A raw point in world space, including Z for height colouring.
@@ -85,8 +87,8 @@ fn load_obj(path: &Path) -> Result<Vec<Point3D>, String> {
             if let [x, y_up, z_fwd] = chunk {
                 points.push(Point3D {
                     x: *x as f64,
-                    y: *z_fwd as f64, // world Y  = OBJ Z (forward)
-                    z: *y_up as f64,  // height   = OBJ Y (up)
+                    y: (*z_fwd as f64), // negate: OBJ Z points toward viewer, flip to world Y
+                    z: *y_up as f64,
                 });
             }
         }
@@ -186,8 +188,7 @@ fn render_heightmap(
 
     for p in points {
         let px = ((p.x - x_min) / world_w * (img_w - 1) as f64).round() as u32;
-        // Flip Y so that world-north is image-top
-        let py = img_h - 1 - ((p.y - y_min) / world_h * (img_h - 1) as f64).round() as u32;
+        let py = ((p.y - y_min) / world_h * (img_h - 1) as f64).round() as u32;
 
         let idx = (py * img_w + px) as usize;
         if idx < pixel_count && p.z > z_buf[idx] {
@@ -223,12 +224,31 @@ fn render_heightmap(
     }
 
     // 6. Save
-    img.save(out_path)
+    let mut final_img = img;
+    let mut final_w = img_w;
+    let mut final_h = img_h;
+
+    // Rotate if portrait (height > width)
+    if img_h > img_w {
+        final_img = imageops::rotate90(&final_img);
+        final_w = img_h;
+        final_h = img_w;
+    }
+
+    final_img
+        .save(out_path)
         .map_err(|e| format!("Failed to save PNG: {e}"))?;
 
+    // Capture pre-rotation dims for coordinate math
+    let pre_rot_w = img_w;
+    let pre_rot_h = img_h;
+
+    // ... (existing rotate90 block) ...
+
     Ok(MapMeta {
-        img_width: img_w,
-        img_height: img_h,
+        img_width: pre_rot_w,   // ← use pre-rotation dims
+        img_height: pre_rot_h,  // ← use pre-rotation dims
+        rotated: img_h > img_w, // ← whether we rotated to portrait
         world_x_min: x_min,
         world_y_min: y_min,
         metres_per_pixel,
@@ -238,58 +258,83 @@ fn render_heightmap(
 
 // ── Gap filling ───────────────────────────────────────────────────────────────
 
-/// Simple scanline inpainting: propagate the last known Z left→right, then
-/// right→left, then top→bottom, then bottom→top.  Four passes give reasonable
-/// fill for sparse point clouds without any expensive neighbour search.
+/// Two-pass nearest-neighbour inpainting using a distance transform.
+/// Each unfilled pixel gets the Z of its nearest filled neighbour,
+/// eliminating the "colour stripe" artifact from directional propagation.
 fn fill_gaps(z_buf: &mut Vec<f64>, hit: &mut Vec<bool>, w: u32, h: u32) {
-    // Horizontal passes
+    let pixel_count = (w * h) as usize;
+    
+    // Store the nearest known Z for each pixel
+    let mut nearest_z: Vec<f64> = vec![f64::MIN; pixel_count];
+    // Distance squared to nearest hit pixel (use u32::MAX as sentinel)
+    let mut dist: Vec<u32> = vec![u32::MAX; pixel_count];
+
+    // Seed: hit pixels have distance 0
     for row in 0..h {
-        // Left → right
-        let mut last_z = f64::MIN;
         for col in 0..w {
             let idx = (row * w + col) as usize;
             if hit[idx] {
-                last_z = z_buf[idx];
-            } else if last_z != f64::MIN {
-                z_buf[idx] = last_z;
-                hit[idx] = true;
-            }
-        }
-        // Right → left
-        let mut last_z = f64::MIN;
-        for col in (0..w).rev() {
-            let idx = (row * w + col) as usize;
-            if hit[idx] {
-                last_z = z_buf[idx];
-            } else if last_z != f64::MIN {
-                z_buf[idx] = last_z;
-                hit[idx] = true;
+                dist[idx] = 0;
+                nearest_z[idx] = z_buf[idx];
             }
         }
     }
-    // Vertical passes
-    for col in 0..w {
-        // Top → bottom
-        let mut last_z = f64::MIN;
-        for row in 0..h {
+
+    // Forward pass: top-left → bottom-right
+    for row in 0..h {
+        for col in 0..w {
             let idx = (row * w + col) as usize;
-            if hit[idx] {
-                last_z = z_buf[idx];
-            } else if last_z != f64::MIN {
-                z_buf[idx] = last_z;
-                hit[idx] = true;
+            // Check left neighbour
+            if col > 0 {
+                let left = idx - 1;
+                let d = dist[left].saturating_add(1);
+                if d < dist[idx] {
+                    dist[idx] = d;
+                    nearest_z[idx] = nearest_z[left];
+                }
+            }
+            // Check top neighbour
+            if row > 0 {
+                let above = ((row - 1) * w + col) as usize;
+                let d = dist[above].saturating_add(1);
+                if d < dist[idx] {
+                    dist[idx] = d;
+                    nearest_z[idx] = nearest_z[above];
+                }
             }
         }
-        // Bottom → top
-        let mut last_z = f64::MIN;
-        for row in (0..h).rev() {
+    }
+
+    // Backward pass: bottom-right → top-left
+    for row in (0..h).rev() {
+        for col in (0..w).rev() {
             let idx = (row * w + col) as usize;
-            if hit[idx] {
-                last_z = z_buf[idx];
-            } else if last_z != f64::MIN {
-                z_buf[idx] = last_z;
-                hit[idx] = true;
+            // Check right neighbour
+            if col + 1 < w {
+                let right = idx + 1;
+                let d = dist[right].saturating_add(1);
+                if d < dist[idx] {
+                    dist[idx] = d;
+                    nearest_z[idx] = nearest_z[right];
+                }
             }
+            // Check bottom neighbour
+            if row + 1 < h {
+                let below = ((row + 1) * w + col) as usize;
+                let d = dist[below].saturating_add(1);
+                if d < dist[idx] {
+                    dist[idx] = d;
+                    nearest_z[idx] = nearest_z[below];
+                }
+            }
+        }
+    }
+
+    // Apply: fill unfilled pixels with their nearest neighbour's Z
+    for idx in 0..pixel_count {
+        if !hit[idx] && dist[idx] != u32::MAX {
+            z_buf[idx] = nearest_z[idx];
+            hit[idx] = true;
         }
     }
 }

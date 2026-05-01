@@ -58,18 +58,16 @@ pub async fn render_map(
 /// Called from JS:
 ///   invoke("pixel_to_world", { px, py, meta })
 #[tauri::command]
-pub fn pixel_to_world(
-    px: f64,
-    py: f64,
-    meta: MapMeta,
-) -> (f64, f64) {
-    // px / py are in CSS pixels relative to the <img> element's displayed size,
-    // so the frontend must pass them already scaled to the PNG's actual pixel
-    // dimensions (see the Svelte component).
-    let world_x = meta.world_x_min + px * meta.metres_per_pixel;
-    // Y is flipped in the image (north = top = py 0)
-    let world_y = meta.world_y_min
-        + (meta.img_height as f64 - 1.0 - py) * meta.metres_per_pixel;
-
-    (world_x, world_y)
+pub fn pixel_to_world(px: f64, py: f64, meta: MapMeta) -> (f64, f64) {
+    if meta.rotated {
+        let orig_px = py;
+        let orig_py = (meta.img_height as f64 - 1.0) - px;
+        let world_x = meta.world_x_min + orig_px * meta.metres_per_pixel;
+        let world_y = meta.world_y_min + (meta.img_height as f64 - 1.0 - orig_py) * meta.metres_per_pixel;
+        (world_x, world_y)
+    } else {
+        let world_x = meta.world_x_min + px * meta.metres_per_pixel;
+        let world_y = meta.world_y_min + py * meta.metres_per_pixel;
+        (world_x, world_y)
+    }
 }

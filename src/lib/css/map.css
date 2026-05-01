@@ -12,6 +12,8 @@
     justify-content: center;
     overflow: hidden;
     background: var(--color-white);
+    width: 100%;
+    height: 100%;
 }
 
 /* The rendered map PNG — scales to fit without cropping */
@@ -173,22 +175,14 @@
 ========================================================= */
 
 .map-img.rotated {
-    /* Rotate 90° clockwise so a portrait image becomes landscape */
     transform: rotate(90deg);
-
-    /*
-     * After rotation the browser still reserves the *original* layout box.
-     * We swap width/height so the rotated image actually fills the container.
-     * The container must be `position: relative` (already the case).
-     */
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    object-fit: contain;
-
-    /* Keep transform origin at centre so the rotation is symmetrical */
     transform-origin: center center;
+
+    /* CRITICAL: swap width/height */
+    width: 100vh;
+    height: 100vw;
+
+    object-fit: contain;
 }
 
 
@@ -253,4 +247,72 @@
 
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+/* ── Map pin markers ─────────────────────────────────────────── */
+
+.map-pin {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 20;
+}
+
+.map-pin-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.map-pin-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-top: 2px;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: background 0.15s ease;
+}
+
+/* Unassigned pin — purple */
+.pin-unassigned .map-pin-dot   { background: var(--color-rtpurple); }
+.pin-unassigned .map-pin-label { background: var(--color-rtpurple); }
+
+/* Start — green */
+.pin-start .map-pin-dot   { background: var(--color-rtpurple); }
+.pin-start .map-pin-label { background: var(--color-rtpurple); }
+
+/* Waypoint — teal */
+.pin-waypoint .map-pin-dot   { background: var(--color-rtpurple); }
+.pin-waypoint .map-pin-label { background: var(--color-rtpurple); }
+
+/* End — red */
+.pin-end .map-pin-dot   { background: var(--color-rtpurple); }
+.pin-end .map-pin-label { background: var(--color-rtpurple); }
+
+/* Highlighted (from list hover) */
+.map-pin.highlighted .map-pin-dot {
+    background: var(--color-rtpurple-dark) !important;
+    transform: rotate(-45deg) scale(1.45);
+}
+.map-pin.highlighted .map-pin-label {
+    background: var(--color-rtpurple-dark) !important;
+}
+
+.pin-row {
+    cursor: default;
+    border-radius: 4px;
+    transition: background 0.12s ease;
+}
+.pin-row:hover {
+    background: rgba(255,255,255,0.12);
 }

@@ -1,20 +1,12 @@
 <script lang="ts">
-// ----- TAURI / EXTERNAL -----
     import { invoke } from "@tauri-apps/api/core";
     import { convertFileSrc } from '@tauri-apps/api/core';
     import { appDataDir } from '@tauri-apps/api/path';
-
-// ----- SVELTE -----
     import { onMount } from 'svelte';
     import { get } from "svelte/store";
-
-// ----- STYLES -----
     import '../../global.css';
-    import { displayedMap, pinnedCoords } from "../../stores/map";
+    import { displayedMap, pinnedCoords, waypoints, startPoint, endPoint, hoveredNavId } from "../../stores/map";
     import type { PinnedCoord } from "../../stores/map";
-
-
-// ── Types ────────────────────────────────────────────────────────────────────
 
     interface MapMeta {
         img_width:        number;
@@ -23,100 +15,130 @@
         world_y_min:      number;
         metres_per_pixel: number;
         format:           string;
+        rotated:          boolean;
     }
-
-
-// ── State ────────────────────────────────────────────────────────────────────
 
     let mapFiles    = $state<string[]>([]);
     let selectedMap = $state<string | null>(null);
     let openedMap   = $state<string | null>(null);
-
     let mapPath     = $state<string>("");
     let mapMeta     = $state<MapMeta | null>(null);
     let isRendering = $state(false);
     let renderError = $state<string | null>(null);
-
-    let imgEl           = $state<HTMLImageElement | null>(null);
-    let mousePixel      = $state<{ x: number; y: number } | null>(null);
-    let mouseWorld      = $state<{ x: number; y: number } | null>(null);
-
-    // Whether the image should be rotated 90° to put its longest side horizontal
-    let rotated = $state(false);
+    let imgEl       = $state<HTMLImageElement | null>(null);
+    let mousePixel  = $state<{ x: number; y: number } | null>(null);
+    let mouseWorld  = $state<{ x: number; y: number } | null>(null);
+    let rotated     = $state(false);
+    let hoveredPinId = $state<string | null>(null);
 
     const NEEDS_RENDER = ["obj", "las", "laz", "e57"];
 
+    function fileExt(name: string) { return name.split('.').pop()?.toLowerCase() ?? ""; }
+    function needs3DRender(name: string) { return NEEDS_RENDER.includes(fileExt(name)); }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+    // ── Letterbox geometry ────────────────────────────────────────────────────
+    // Returns the rendered content rect inside the <img> element (object-fit:contain).
+    // When CSS-rotated, the element's bounding rect has swapped w/h vs the PNG dims.
+    function getRenderedRect(rect: DOMRect): { rW: number; rH: number; oX: number; oY: number } {
+        if (!mapMeta) return { rW: rect.width, rH: rect.height, oX: 0, oY: 0 };
 
-    function fileExt(name: string): string {
-        return name.split('.').pop()?.toLowerCase() ?? "";
+        // Displayed aspect uses PNG dims swapped when rotated
+        const pngW = rotated ? mapMeta.img_height : mapMeta.img_width;
+        const pngH = rotated ? mapMeta.img_width  : mapMeta.img_height;
+        const imgAspect = pngW / pngH;
+        const elAspect  = rect.width / rect.height;
+
+        let rW: number, rH: number, oX: number, oY: number;
+        if (imgAspect > elAspect) {
+            rW = rect.width;
+            rH = rect.width / imgAspect;
+            oX = 0;
+            oY = (rect.height - rH) / 2;
+        } else {
+            rH = rect.height;
+            rW = rect.height * imgAspect;
+            oX = (rect.width - rW) / 2;
+            oY = 0;
+        }
+        return { rW, rH, oX, oY };
     }
 
-    function needs3DRender(name: string): boolean {
-        return NEEDS_RENDER.includes(fileExt(name));
-    }
-
-    /** Pixel coords scaled to the PNG's actual resolution. */
+    // ── Mouse → PNG pixel ─────────────────────────────────────────────────────
     function eventToImgPixel(e: MouseEvent): { px: number; py: number } | null {
         if (!imgEl || !mapMeta) return null;
         const rect = imgEl.getBoundingClientRect();
+        const { rW, rH, oX, oY } = getRenderedRect(rect);
 
-        let px: number, py: number;
+        const relX = e.clientX - rect.left - oX;
+        const relY = e.clientY - rect.top  - oY;
+
+        // Outside the actual image content area → no coord
+        if (relX < 0 || relY < 0 || relX > rW || relY > rH) return null;
 
         if (rotated) {
-            // Image is rotated 90° CW via CSS transform.
-            // The displayed rect is the post-transform bounding box.
-            // Map the mouse back into the original (unrotated) pixel space.
-            const relX = e.clientX - rect.left;
-            const relY = e.clientY - rect.top;
-            // In the rotated frame:  displayed-x maps to original-y (bottom→top),
-            //                        displayed-y maps to original-x (left→right).
-            const scaleX = mapMeta.img_width  / rect.height; // note: swapped
-            const scaleY = mapMeta.img_height / rect.width;
-            px = relY * scaleX;
-            py = (rect.width - relX) * scaleY;
+            // CSS rotate(90deg) CW: displayed X → PNG Y, displayed Y → PNG X (inverted)
+            const px = (rH - relY) * (mapMeta.img_width  / rH);
+            const py =        relX  * (mapMeta.img_height / rW);
+            return { px, py };
         } else {
-            const scaleX = mapMeta.img_width  / rect.width;
-            const scaleY = mapMeta.img_height / rect.height;
-            px = (e.clientX - rect.left) * scaleX;
-            py = (e.clientY - rect.top)  * scaleY;
+            return {
+                px: relX * (mapMeta.img_width  / rW),
+                py: relY * (mapMeta.img_height / rH),
+            };
         }
-
-        return { px, py };
     }
 
+    // ── World coord → CSS position over the <img> element ────────────────────
+    // The renderer Y-flips: py=0 in PNG = world_y_max (north/top).
+    // So: world_y_max = world_y_min + (img_height - 1) * mpp
+    //     img_py = (world_y_max - wy) / mpp
+    function worldToCSSPos(wx: number, wy: number): { left: string; top: string } | null {
+        if (!imgEl || !mapMeta) return null;
+        const rect = imgEl.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return null;
+        const { rW, rH, oX, oY } = getRenderedRect(rect);
 
-// ── Map management ───────────────────────────────────────────────────────────
+        const origPx = (wx - mapMeta.world_x_min) / mapMeta.metres_per_pixel;
+        const origPy = (wy - mapMeta.world_y_min) / mapMeta.metres_per_pixel;
 
+        let cssX: number, cssY: number;
+
+        cssX = oX + origPx * (rW / mapMeta.img_width);
+        cssY = oY + origPy * (rH / mapMeta.img_height);
+
+        return {
+            left: `${(cssX / rect.width  * 100).toFixed(3)}%`,
+            top:  `${(cssY / rect.height * 100).toFixed(3)}%`,
+        };
+    }
+
+    // Reactive overlay positions
+    let pinOverlays = $derived(
+        $pinnedCoords.map(pin => ({ pin, pos: worldToCSSPos(pin.x, pin.y) }))
+    );
+
+    let wpOverlays = $derived([
+        ...($startPoint ? [{ id: $startPoint.id, x: $startPoint.x, y: $startPoint.y, label: '▶', kind: 'start' }] : []),
+        ...$waypoints.map((wp, i) => ({ id: wp.id, x: wp.x, y: wp.y, label: `${i + 1}`, kind: 'waypoint' })),
+        ...($endPoint   ? [{ id: $endPoint.id,   x: $endPoint.x,   y: $endPoint.y,   label: '⏹', kind: 'end'   }] : []),
+    ].map(item => ({ ...item, pos: worldToCSSPos(item.x, item.y) })));
+
+    // ── Map management ────────────────────────────────────────────────────────
     async function loadMap() {
         const stored = get(displayedMap);
-        if (stored) {
-            openedMap = stored;
-            await openMap(stored);
-        } else {
-            await listMaps();
-        }
+        if (stored) { openedMap = stored; await openMap(stored); }
+        else { await listMaps(); }
     }
 
     async function listMaps() {
-        const result = await invoke<string[]>("list_task_files", { directory: "maps" });
-        mapFiles = result;
-        if (result.length === 1) {
-            selectedMap = result[0];
-            await confirmMapSelection();
-        }
+        mapFiles = await invoke<string[]>("list_task_files", { directory: "maps" });
+        if (mapFiles.length === 1) { selectedMap = mapFiles[0]; await confirmMapSelection(); }
     }
 
     async function reload() {
-        openedMap    = null;
-        selectedMap  = null;
-        mapPath      = "";
-        mapMeta      = null;
-        renderError  = null;
-        rotated      = false;
-        pinnedCoords.set([]);
-        displayedMap.set(null);
+        openedMap = null; selectedMap = null; mapPath = "";
+        mapMeta = null; renderError = null; rotated = false;
+        pinnedCoords.set([]); displayedMap.set(null);
         await listMaps();
     }
 
@@ -128,65 +150,48 @@
     }
 
     async function openMap(filename: string) {
-        renderError = null;
-        mapMeta     = null;
-        mapPath     = "";
-        rotated     = false;
-
-        const base       = await appDataDir();
+        renderError = null; mapMeta = null; mapPath = ""; rotated = false;
+        const base = await appDataDir();
         const normalized = base.endsWith('/') ? base : base + '/';
 
         if (needs3DRender(filename)) {
             isRendering = true;
             try {
                 const meta = await invoke<MapMeta>("render_map", { filename });
-                mapMeta = meta;
-                // Rotate if the image is taller than it is wide
-                rotated = meta.img_height > meta.img_width;
-
-                const stem    = filename.replace(/\.[^.]+$/, "");
-                const pngName = `${stem}_preview.png`;
-                mapPath = convertFileSrc(normalized + 'maps/' + pngName);
-            } catch (err) {
-                renderError = String(err);
-            } finally {
-                isRendering = false;
-            }
+                mapMeta    = meta;
+                rotated = meta.rotated;
+                const stem = filename.replace(/\.[^.]+$/, "");
+                mapPath    = convertFileSrc(normalized + 'maps/' + stem + '_preview.png');
+            } catch (err) { renderError = String(err); }
+            finally { isRendering = false; }
         } else {
             mapPath = convertFileSrc(normalized + 'maps/' + filename);
-            // For plain images, detect orientation once the image loads
-            mapMeta = null;
         }
     }
 
-    /** Called after a plain image loads so we can check its natural dimensions. */
+    // In onImgLoad(), for plain PNGs (no meta):
     function onImgLoad() {
-        if (!mapMeta && imgEl) {
-            rotated = imgEl.naturalHeight > imgEl.naturalWidth;
-        }
+        if (!mapMeta && imgEl) rotated = imgEl.naturalHeight > imgEl.naturalWidth;
     }
 
-
-// ── Coordinate picking ───────────────────────────────────────────────────────
-
+    // ── Interaction ───────────────────────────────────────────────────────────
     async function onMouseMove(e: MouseEvent) {
         if (!mapMeta) return;
         const pix = eventToImgPixel(e);
-        if (!pix) return;
+        if (!pix) {
+            // Cursor is in the letterbox — clear coords
+            mousePixel = null;
+            mouseWorld = null;
+            return;
+        }
         mousePixel = { x: Math.round(pix.px), y: Math.round(pix.py) };
-
         const [wx, wy] = await invoke<[number, number]>("pixel_to_world", {
-            px: pix.px,
-            py: pix.py,
-            meta: mapMeta,
+            px: pix.px, py: pix.py, meta: mapMeta,
         });
         mouseWorld = { x: wx, y: wy };
     }
 
-    function onMouseLeave() {
-        mousePixel = null;
-        mouseWorld = null;
-    }
+    function onMouseLeave() { mousePixel = null; mouseWorld = null; }
 
     async function onMapClick(e: MouseEvent) {
         if (!mapMeta || !mouseWorld) return;
@@ -196,21 +201,13 @@
         ]);
     }
 
-    function removePin(id: string) {
-        pinnedCoords.update(pins => pins.filter(p => p.id !== id));
-    }
-
+    function removePin(id: string) { pinnedCoords.update(p => p.filter(x => x.id !== id)); }
     function copyPin(coord: PinnedCoord) {
         navigator.clipboard.writeText(`${coord.x.toFixed(3)}, ${coord.y.toFixed(3)}`);
     }
 
-
-// ── Lifecycle ────────────────────────────────────────────────────────────────
-
     onMount(() => { loadMap(); });
 </script>
-
-
 
 <div class="frame" aria-hidden="true">
     <div class="header" style="z-index: 100;">
@@ -238,18 +235,13 @@
                     {/each}
                 </div>
                 <div class="file-footer">
-                    <button class="button secondary" onclick={confirmMapSelection}>
-                        Confirm selection
-                    </button>
+                    <button class="button secondary" onclick={confirmMapSelection}>Confirm selection</button>
                 </div>
             {/if}
         </div>
 
     {:else if isRendering}
-        <div class="center-message">
-            <span class="spinner">⏳</span>
-            Rendering 3D map to top-down view…
-        </div>
+        <div class="center-message"><span class="spinner">⏳</span> Rendering 3D map to top-down view…</div>
 
     {:else if renderError}
         <div class="center-message error">
@@ -271,21 +263,52 @@
                 onclick={onMapClick}
             />
 
-            {#if mapMeta && mouseWorld}
+            {#if mapMeta}
+                <!-- Unassigned pins — purple, disappear on assignment -->
+                {#each pinOverlays as { pin, pos }, i}
+                    {#if pos}
+                        <div
+                            class="map-pin pin-unassigned {hoveredPinId === pin.id ? 'highlighted' : ''}"
+                            style="left:{pos.left}; top:{pos.top};"
+                        >
+                            <div class="map-pin-dot"></div>
+                            <div class="map-pin-label">#{i + 1}</div>
+                        </div>
+                    {/if}
+                {/each}
+
+                <!-- Waypoint markers — persist, light up from nav list hover -->
+                {#each wpOverlays as item}
+                    {#if item.pos}
+                        <div
+                            class="map-pin pin-{item.kind} {$hoveredNavId === item.id ? 'highlighted' : ''}"
+                            style="left:{item.pos.left}; top:{item.pos.top};"
+                        >
+                            <div class="map-pin-dot"></div>
+                            <div class="map-pin-label">{item.label}</div>
+                        </div>
+                    {/if}
+                {/each}
+            {/if}
+
+            <!-- Tooltip — only when cursor is over actual image pixels -->
+            {#if mapMeta && mouseWorld && mousePixel}
                 <div class="coord-overlay">
-                    <span>px ({mousePixel?.x}, {mousePixel?.y})</span>
+                    <span>px ({mousePixel.x}, {mousePixel.y})</span>
                     <span>world ({mouseWorld.x.toFixed(2)} m, {mouseWorld.y.toFixed(2)} m)</span>
                     <span class="hint">Click to pin</span>
                 </div>
-            {:else if !mapMeta && mousePixel}
-                <div class="coord-overlay">px ({mousePixel.x}, {mousePixel.y})</div>
             {/if}
 
             {#if $pinnedCoords.length > 0}
                 <div class="pin-list">
                     <div class="pin-header">Pinned coordinates</div>
                     {#each $pinnedCoords as coord, i}
-                        <div class="pin-row">
+                        <div
+                            class="pin-row"
+                            onmouseenter={() => hoveredPinId = coord.id}
+                            onmouseleave={() => hoveredPinId = null}
+                        >
                             <span class="pin-index">#{i + 1}</span>
                             <span class="pin-coord">{coord.x.toFixed(2)} m, {coord.y.toFixed(2)} m</span>
                             <button class="pin-action" onclick={() => copyPin(coord)} title="Copy">📋</button>

@@ -101,6 +101,10 @@ pub fn import_map_file(app: AppHandle, directory: String) -> Result<(), String> 
     let chosen_file_dir = PathBuf::from(&directory);
     let destination_dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("maps");
 
+    println!("Printing ...");
+    println!("Chosen file: {}", chosen_file_dir.display());
+    println!("Destination directory: {}", destination_dir.display());
+
     // Make sure the file exists
     if !chosen_file_dir.exists() {
         return Err(format!("File does not exist: {}", directory));

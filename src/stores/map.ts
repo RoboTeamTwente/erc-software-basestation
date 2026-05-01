@@ -1,16 +1,13 @@
-// src/stores/map.ts
 import { writable } from "svelte/store";
 
 export const displayedMap = writable<string | null>(null);
 
-// A pinned coordinate picked from the map
 export interface PinnedCoord {
     id: string;
-    x: number;   // world metres
-    y: number;   // world metres
+    x: number;
+    y: number;
 }
 
-// A waypoint in the navigation plan
 export interface Waypoint {
     id: string;
     x: number;
@@ -18,10 +15,10 @@ export interface Waypoint {
     label?: string;
 }
 
-// Pins dropped on the map (shared with nav plan)
-export const pinnedCoords = writable<PinnedCoord[]>([]);
+export const pinnedCoords  = writable<PinnedCoord[]>([]);
+export const startPoint    = writable<Waypoint | null>(null);
+export const endPoint      = writable<Waypoint | null>(null);
+export const waypoints     = writable<Waypoint[]>([]);
 
-// Navigation plan
-export const startPoint  = writable<Waypoint | null>(null);
-export const endPoint    = writable<Waypoint | null>(null);
-export const waypoints   = writable<Waypoint[]>([]);
+// Which waypoint/start/end id is currently hovered in the nav plan list
+export const hoveredNavId  = writable<string | null>(null);
