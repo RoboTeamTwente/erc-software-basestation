@@ -246,11 +246,11 @@ fn render_heightmap(
     // ... (existing rotate90 block) ...
 
     Ok(MapMeta {
-        img_width: pre_rot_w,   // ← use pre-rotation dims
-        img_height: pre_rot_h,  // ← use pre-rotation dims
+        img_width:        final_w,   // post-rotation width  (always the long edge)
+        img_height:       final_h,   // post-rotation height (always the short edge)
         rotated: img_h > img_w, // ← whether we rotated to portrait
-        world_x_min: x_min,
-        world_y_min: y_min,
+        world_x_min: 0.0, // ← world X always maps to PNG X starting at left edge
+        world_y_min: 0.0, // ← world Y always maps to PNG Y starting at bottom edge
         metres_per_pixel,
         format,
     })

@@ -59,15 +59,21 @@ pub async fn render_map(
 ///   invoke("pixel_to_world", { px, py, meta })
 #[tauri::command]
 pub fn pixel_to_world(px: f64, py: f64, meta: MapMeta) -> (f64, f64) {
-    if meta.rotated {
-        let orig_px = py;
-        let orig_py = (meta.img_height as f64 - 1.0) - px;
-        let world_x = meta.world_x_min + orig_px * meta.metres_per_pixel;
-        let world_y = meta.world_y_min + (meta.img_height as f64 - 1.0 - orig_py) * meta.metres_per_pixel;
-        (world_x, world_y)
-    } else {
-        let world_x = meta.world_x_min + px * meta.metres_per_pixel;
-        let world_y = meta.world_y_min + py * meta.metres_per_pixel;
-        (world_x, world_y)
-    }
+    // px, py are display pixels from bottom-left of the displayed image.
+    // X goes right, Y goes up. No rotation logic needed — frontend handles that.
+    let world_x = px * meta.metres_per_pixel;
+    let world_y = py * meta.metres_per_pixel;
+    (world_x, world_y)
+
+    // if meta.rotated {
+    //     let orig_px = py;
+    //     let orig_py = (meta.img_height as f64 - 1.0) - px;
+    //     let world_x = meta.world_x_min + orig_px * meta.metres_per_pixel; 
+    //     let world_y = meta.world_y_min + (meta.img_height as f64 - 1.0 - orig_py) * meta.metres_per_pixel;
+    //     (world_x, world_y)
+    // } else {
+    //     let world_x = meta.world_x_min + px * meta.metres_per_pixel;
+    //     let world_y = meta.world_y_min + py * meta.metres_per_pixel;
+    //     (world_x, world_y)
+    // }
 }

@@ -37,15 +37,11 @@
     function needs3DRender(name: string) { return NEEDS_RENDER.includes(fileExt(name)); }
 
     // ── Letterbox geometry ────────────────────────────────────────────────────
-    // Returns the rendered content rect inside the <img> element (object-fit:contain).
-    // When CSS-rotated, the element's bounding rect has swapped w/h vs the PNG dims.
     function getRenderedRect(rect: DOMRect): { rW: number; rH: number; oX: number; oY: number } {
         if (!mapMeta) return { rW: rect.width, rH: rect.height, oX: 0, oY: 0 };
 
-        // Displayed aspect uses PNG dims swapped when rotated
-        const pngW = rotated ? mapMeta.img_height : mapMeta.img_width;
-        const pngH = rotated ? mapMeta.img_width  : mapMeta.img_height;
-        const imgAspect = pngW / pngH;
+        // img_width/img_height are now always post-rotation display dims — no swap needed
+        const imgAspect = mapMeta.img_width / mapMeta.img_height;
         const elAspect  = rect.width / rect.height;
 
         let rW: number, rH: number, oX: number, oY: number;
@@ -72,43 +68,30 @@
         const relX = e.clientX - rect.left - oX;
         const relY = e.clientY - rect.top  - oY;
 
-        // Outside the actual image content area → no coord
         if (relX < 0 || relY < 0 || relX > rW || relY > rH) return null;
 
-        if (rotated) {
-            // CSS rotate(90deg) CW: displayed X → PNG Y, displayed Y → PNG X (inverted)
-            const px = (rH - relY) * (mapMeta.img_width  / rH);
-            const py =        relX  * (mapMeta.img_height / rW);
-            return { px, py };
-        } else {
-            return {
-                px: relX * (mapMeta.img_width  / rW),
-                py: relY * (mapMeta.img_height / rH),
-            };
-        }
+        return {
+            px: relX / rW * mapMeta.img_width,
+            py: (1 - relY / rH) * mapMeta.img_height,
+        };
     }
 
     // ── World coord → CSS position over the <img> element ────────────────────
-    // The renderer Y-flips: py=0 in PNG = world_y_max (north/top).
-    // So: world_y_max = world_y_min + (img_height - 1) * mpp
-    //     img_py = (world_y_max - wy) / mpp
     function worldToCSSPos(wx: number, wy: number): { left: string; top: string } | null {
         if (!imgEl || !mapMeta) return null;
         const rect = imgEl.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return null;
         const { rW, rH, oX, oY } = getRenderedRect(rect);
 
-        const origPx = (wx - mapMeta.world_x_min) / mapMeta.metres_per_pixel;
-        const origPy = (wy - mapMeta.world_y_min) / mapMeta.metres_per_pixel;
-
-        let cssX: number, cssY: number;
-
-        cssX = oX + origPx * (rW / mapMeta.img_width);
-        cssY = oY + origPy * (rH / mapMeta.img_height);
+        // Exact inverse of eventToImgPixel:
+        // px = relX / rW * img_width  → relX = px / img_width * rW
+        // py = (1 - relY / rH) * img_height → relY = (1 - py / img_height) * rH
+        const relX = (wx / mapMeta.metres_per_pixel) / mapMeta.img_width  * rW;
+        const relY = (1 - (wy / mapMeta.metres_per_pixel) / mapMeta.img_height) * rH;
 
         return {
-            left: `${(cssX / rect.width  * 100).toFixed(3)}%`,
-            top:  `${(cssY / rect.height * 100).toFixed(3)}%`,
+            left: `${((oX + relX) / rect.width  * 100).toFixed(3)}%`,
+            top:  `${((oY + relY) / rect.height * 100).toFixed(3)}%`,
         };
     }
 
@@ -179,11 +162,11 @@
         if (!mapMeta) return;
         const pix = eventToImgPixel(e);
         if (!pix) {
-            // Cursor is in the letterbox — clear coords
             mousePixel = null;
             mouseWorld = null;
             return;
         }
+        // pix.px / pix.py are already in world-Y-up pre-rotation PNG space
         mousePixel = { x: Math.round(pix.px), y: Math.round(pix.py) };
         const [wx, wy] = await invoke<[number, number]>("pixel_to_world", {
             px: pix.px, py: pix.py, meta: mapMeta,
@@ -254,7 +237,7 @@
         <div class="map-container">
             <img
                 bind:this={imgEl}
-                class="map-img {mapMeta ? 'crosshair' : ''} {rotated ? 'rotated' : ''}"
+                class="map-img {mapMeta ? 'crosshair' : ''}"
                 src={mapPath}
                 alt="Map"
                 onload={onImgLoad}
