@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
 
-use crate::commands::rover_commands::RoverAddress;
+use crate::RoverAddress;
 use crate::commands::rover_states::RoverState;
 use crate::network::sender;
 use crate::network::service::UdpService;

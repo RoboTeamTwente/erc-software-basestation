@@ -2,10 +2,8 @@ use tauri::State;
 use crate::network::sender;
 use crate::network::service::UdpService;
 use crate::proto::packets::*;
+use crate::RoverAddress;
 
-pub struct RoverAddress {
-    pub ip: String
-}
 
 #[tauri::command]
 pub async fn request_coordinates(state: State<'_, UdpService>, rover_addr: State<'_, RoverAddress>,) -> Result<(i16, i16), i16> {

@@ -91,7 +91,7 @@
 
 
     <div class="grid-item" style="padding-right: 0">
-        <Map />
+        <Map mode={'navigation'}/>
     </div>
 
 

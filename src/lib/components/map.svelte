@@ -1,12 +1,18 @@
 <script lang="ts">
+    let { mode = 'navigation' } = $props<{ mode?: 'navigation' | 'science' | 'probing' }>();
+
     import { invoke } from "@tauri-apps/api/core";
     import { convertFileSrc } from '@tauri-apps/api/core';
     import { appDataDir } from '@tauri-apps/api/path';
+    import { listen } from '@tauri-apps/api/event';
     import { onMount } from 'svelte';
     import { get } from "svelte/store";
     import '../../global.css';
     import { displayedMap, pinnedCoords, waypoints, startPoint, endPoint, hoveredNavId } from "../../stores/map";
     import type { PinnedCoord } from "../../stores/map";
+    import { gpsPosition, scienceLocations, probingLocations } from '../../stores/map';
+    import { hoveredScienceId, hoveredProbingId } from '../../stores/map';
+    import type { GpsPosition } from '../../stores/map';
 
     interface MapMeta {
         img_width:        number;
@@ -18,17 +24,17 @@
         rotated:          boolean;
     }
 
-    let mapFiles    = $state<string[]>([]);
-    let selectedMap = $state<string | null>(null);
-    let openedMap   = $state<string | null>(null);
-    let mapPath     = $state<string>("");
-    let mapMeta     = $state<MapMeta | null>(null);
-    let isRendering = $state(false);
-    let renderError = $state<string | null>(null);
-    let imgEl       = $state<HTMLImageElement | null>(null);
-    let mousePixel  = $state<{ x: number; y: number } | null>(null);
-    let mouseWorld  = $state<{ x: number; y: number } | null>(null);
-    let rotated     = $state(false);
+    let mapFiles     = $state<string[]>([]);
+    let selectedMap  = $state<string | null>(null);
+    let openedMap    = $state<string | null>(null);
+    let mapPath      = $state<string>("");
+    let mapMeta      = $state<MapMeta | null>(null);
+    let isRendering  = $state(false);
+    let renderError  = $state<string | null>(null);
+    let imgEl        = $state<HTMLImageElement | null>(null);
+    let mousePixel   = $state<{ x: number; y: number } | null>(null);
+    let mouseWorld   = $state<{ x: number; y: number } | null>(null);
+    let rotated      = $state(false);
     let hoveredPinId = $state<string | null>(null);
 
     const NEEDS_RENDER = ["obj", "las", "laz", "e57"];
@@ -40,7 +46,6 @@
     function getRenderedRect(rect: DOMRect): { rW: number; rH: number; oX: number; oY: number } {
         if (!mapMeta) return { rW: rect.width, rH: rect.height, oX: 0, oY: 0 };
 
-        // img_width/img_height are now always post-rotation display dims — no swap needed
         const imgAspect = mapMeta.img_width / mapMeta.img_height;
         const elAspect  = rect.width / rect.height;
 
@@ -83,9 +88,6 @@
         if (rect.width === 0 || rect.height === 0) return null;
         const { rW, rH, oX, oY } = getRenderedRect(rect);
 
-        // Exact inverse of eventToImgPixel:
-        // px = relX / rW * img_width  → relX = px / img_width * rW
-        // py = (1 - relY / rH) * img_height → relY = (1 - py / img_height) * rH
         const relX = (wx / mapMeta.metres_per_pixel) / mapMeta.img_width  * rW;
         const relY = (1 - (wy / mapMeta.metres_per_pixel) / mapMeta.img_height) * rH;
 
@@ -94,17 +96,6 @@
             top:  `${((oY + relY) / rect.height * 100).toFixed(3)}%`,
         };
     }
-
-    // Reactive overlay positions
-    let pinOverlays = $derived(
-        $pinnedCoords.map(pin => ({ pin, pos: worldToCSSPos(pin.x, pin.y) }))
-    );
-
-    let wpOverlays = $derived([
-        ...($startPoint ? [{ id: $startPoint.id, x: $startPoint.x, y: $startPoint.y, label: '▶', kind: 'start' }] : []),
-        ...$waypoints.map((wp, i) => ({ id: wp.id, x: wp.x, y: wp.y, label: `${i + 1}`, kind: 'waypoint' })),
-        ...($endPoint   ? [{ id: $endPoint.id,   x: $endPoint.x,   y: $endPoint.y,   label: '⏹', kind: 'end'   }] : []),
-    ].map(item => ({ ...item, pos: worldToCSSPos(item.x, item.y) })));
 
     // ── Map management ────────────────────────────────────────────────────────
     async function loadMap() {
@@ -142,7 +133,7 @@
             try {
                 const meta = await invoke<MapMeta>("render_map", { filename });
                 mapMeta    = meta;
-                rotated = meta.rotated;
+                rotated    = meta.rotated;
                 const stem = filename.replace(/\.[^.]+$/, "");
                 mapPath    = convertFileSrc(normalized + 'maps/' + stem + '_preview.png');
             } catch (err) { renderError = String(err); }
@@ -152,7 +143,6 @@
         }
     }
 
-    // In onImgLoad(), for plain PNGs (no meta):
     function onImgLoad() {
         if (!mapMeta && imgEl) rotated = imgEl.naturalHeight > imgEl.naturalWidth;
     }
@@ -161,12 +151,8 @@
     async function onMouseMove(e: MouseEvent) {
         if (!mapMeta) return;
         const pix = eventToImgPixel(e);
-        if (!pix) {
-            mousePixel = null;
-            mouseWorld = null;
-            return;
-        }
-        // pix.px / pix.py are already in world-Y-up pre-rotation PNG space
+        if (!pix) { mousePixel = null; mouseWorld = null; return; }
+
         mousePixel = { x: Math.round(pix.px), y: Math.round(pix.py) };
         const [wx, wy] = await invoke<[number, number]>("pixel_to_world", {
             px: pix.px, py: pix.py, meta: mapMeta,
@@ -178,10 +164,23 @@
 
     async function onMapClick(e: MouseEvent) {
         if (!mapMeta || !mouseWorld) return;
-        pinnedCoords.update(pins => [
-            ...pins,
-            { id: crypto.randomUUID(), x: mouseWorld!.x, y: mouseWorld!.y }
-        ]);
+
+        if (mode === 'navigation') {
+            pinnedCoords.update(pins => [
+                ...pins,
+                { id: crypto.randomUUID(), x: mouseWorld!.x, y: mouseWorld!.y }
+            ]);
+        } else if (mode === 'science') {
+            scienceLocations.update(locs => [
+                ...locs,
+                { id: crypto.randomUUID(), x: mouseWorld!.x, y: mouseWorld!.y, name: `Location ${locs.length + 1}` }
+            ]);
+        } else if (mode === 'probing') {
+            probingLocations.update(locs => [
+                ...locs,
+                { id: crypto.randomUUID(), x: mouseWorld!.x, y: mouseWorld!.y, name: `Location ${locs.length + 1}` }
+            ]);
+        }
     }
 
     function removePin(id: string) { pinnedCoords.update(p => p.filter(x => x.id !== id)); }
@@ -189,7 +188,16 @@
         navigator.clipboard.writeText(`${coord.x.toFixed(3)}, ${coord.y.toFixed(3)}`);
     }
 
-    onMount(() => { loadMap(); });
+    onMount(async () => {
+        await loadMap();
+        await listen<{ latitude: number; longitude: number; heading: number }>('gps-update', e => {
+            gpsPosition.set({
+                x: e.payload.longitude,
+                y: e.payload.latitude,
+                heading: e.payload.heading,
+            });
+        });
+    });
 </script>
 
 <div class="frame" aria-hidden="true">
@@ -247,43 +255,78 @@
             />
 
             {#if mapMeta}
-                <!-- Unassigned pins — purple, disappear on assignment -->
-                {#each pinOverlays as { pin, pos }, i}
-                    {#if pos}
-                        <div
-                            class="map-pin pin-unassigned {hoveredPinId === pin.id ? 'highlighted' : ''}"
-                            style="left:{pos.left}; top:{pos.top};"
-                        >
-                            <div class="map-pin-dot"></div>
-                            <div class="map-pin-label">#{i + 1}</div>
-                        </div>
-                    {/if}
-                {/each}
+                {#if mode === 'navigation'}
+                    {#each $pinnedCoords as pin, i}
+                        {@const pos = worldToCSSPos(pin.x, pin.y)}
+                        {#if pos}
+                            <div
+                                class="map-pin pin-unassigned {hoveredPinId === pin.id ? 'highlighted' : ''}"
+                                style="left:{pos.left}; top:{pos.top}; pointer-events: auto;"
+                                onmouseover={() => hoveredPinId = pin.id}
+                                onmouseout={() => hoveredPinId = null}
+                            >
+                                <div class="map-pin-dot" style="pointer-events: none;"></div>
+                                <div class="map-pin-label" style="pointer-events: none;">#{i + 1}</div>
+                            </div>
+                        {/if}
+                    {/each}
 
-                <!-- Waypoint markers — persist, light up from nav list hover -->
-                {#each wpOverlays as item}
-                    {#if item.pos}
-                        <div
-                            class="map-pin pin-{item.kind} {$hoveredNavId === item.id ? 'highlighted' : ''}"
-                            style="left:{item.pos.left}; top:{item.pos.top};"
-                        >
-                            <div class="map-pin-dot"></div>
-                            <div class="map-pin-label">{item.label}</div>
-                        </div>
-                    {/if}
-                {/each}
+                    {#each [
+                        ...($startPoint ? [{ id: $startPoint.id, x: $startPoint.x, y: $startPoint.y, label: '▶', kind: 'start' }] : []),
+                        ...$waypoints.map((wp, i) => ({ id: wp.id, x: wp.x, y: wp.y, label: `${i + 1}`, kind: 'waypoint' })),
+                        ...($endPoint   ? [{ id: $endPoint.id,   x: $endPoint.x,   y: $endPoint.y,   label: '⏹', kind: 'end' }] : []),
+                    ] as item}
+                        {@const pos = worldToCSSPos(item.x, item.y)}
+                        {#if pos}
+                            <div
+                                class="map-pin pin-{item.kind} {$hoveredNavId === item.id ? 'highlighted' : ''}"
+                                style="left:{pos.left}; top:{pos.top}; pointer-events: auto;"
+                                onmouseover={() => hoveredNavId.set(item.id)}
+                                onmouseout={() => hoveredNavId.set(null)}
+                            >
+                                <div class="map-pin-dot" style="pointer-events: none;"></div>
+                                <div class="map-pin-label" style="pointer-events: none;">{item.label}</div>
+                            </div>
+                        {/if}
+                    {/each}
+                
+
+                {:else if mode === 'science'}
+                    {#each $scienceLocations as loc, i (loc.id)}
+                        {@const pos = worldToCSSPos(loc.x, loc.y)}
+                        {#if pos}
+                            <div
+                                class="map-pin pin-unassigned {$hoveredScienceId === loc.id ? 'highlighted' : ''}"
+                                style="left:{pos.left}; top:{pos.top}; pointer-events: auto;"
+                                onmouseover={() => hoveredScienceId.set(loc.id)}
+                                onmouseout={() => hoveredScienceId.set(null)}
+                            >
+                                <div class="map-pin-dot" style="pointer-events: none;"></div>
+                                <div class="map-pin-label" style="pointer-events: none;">{i + 1}</div>
+                            </div>
+                        {/if}
+                    {/each}
+
+                {:else if mode === 'probing'}
+                    {#each $probingLocations as loc, i (loc.id)}
+                        {@const pos = worldToCSSPos(loc.x, loc.y)}
+                        {#if pos}
+                            <div
+                                class="map-pin pin-unassigned {$hoveredProbingId === loc.id ? 'highlighted' : ''}"
+                                style="left:{pos.left}; top:{pos.top}; pointer-events: auto;"
+                                onmouseover={() => hoveredProbingId.set(loc.id)}
+                                onmouseout={() => hoveredProbingId.set(null)}
+                            >
+                                <div class="map-pin-dot" style="pointer-events: none;"></div>
+                                <div class="map-pin-label" style="pointer-events: none;">{i + 1}</div>
+                            </div>
+                        {/if}
+                    {/each}
+                {/if}
+
             {/if}
 
-            <!-- Tooltip — only when cursor is over actual image pixels -->
-            {#if mapMeta && mouseWorld && mousePixel}
-                <div class="coord-overlay">
-                    <span>px ({mousePixel.x}, {mousePixel.y})</span>
-                    <span>world ({mouseWorld.x.toFixed(2)} m, {mouseWorld.y.toFixed(2)} m)</span>
-                    <span class="hint">Click to pin</span>
-                </div>
-            {/if}
-
-            {#if $pinnedCoords.length > 0}
+            {#if mode === 'navigation' && $pinnedCoords.length > 0}
                 <div class="pin-list">
                     <div class="pin-header">Pinned coordinates</div>
                     {#each $pinnedCoords as coord, i}
@@ -299,6 +342,26 @@
                         </div>
                     {/each}
                 </div>
+            {/if}
+
+            {#if mapMeta && mouseWorld && mousePixel}
+                <div class="coord-overlay">
+                    <span>px ({mousePixel.x}, {mousePixel.y})</span>
+                    <span>world ({mouseWorld.x.toFixed(2)} m, {mouseWorld.y.toFixed(2)} m)</span>
+                    <span class="hint">Click to pin</span>
+                </div>
+            {/if}
+
+            {#if $gpsPosition && mapMeta}
+                {@const gpsPos = worldToCSSPos($gpsPosition.x, $gpsPosition.y)}
+                {#if gpsPos}
+                    <div
+                        class="gps-marker"
+                        style="left:{gpsPos.left}; top:{gpsPos.top}; --heading:{$gpsPosition.heading}deg;"
+                    >
+                        <div class="gps-arrow">▲</div>
+                    </div>
+                {/if}
             {/if}
         </div>
     {/if}

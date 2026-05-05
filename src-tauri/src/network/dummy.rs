@@ -123,8 +123,8 @@ fn gen_imu(t: f32) -> pb_envelope::Payload {
 
 fn gen_gps(t: f32) -> pb_envelope::Payload {
     pb_envelope::Payload::GpsInfo(SensorBoardGpsInfo {
-        latitude: 52.2297 + (t * 0.001).sin() as f64 * 0.0005,
-        longitude: 6.8978 + (t * 0.0013).cos() as f64 * 0.0005,
+        latitude:  15.0 + (t * 0.1).sin() as f64 * 10.0,  // reuse latitude as Y metres
+        longitude: 25.0 + (t * 0.05).sin() as f64 * 20.0, // reuse longitude as X metres
         altitude: 35.0,
         speed: 1.0,
         heading: ((t * 0.05).sin() * 180.0 + 180.0) % 360.0,

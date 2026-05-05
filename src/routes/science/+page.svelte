@@ -4,11 +4,13 @@
 
 // ----- SVELTE -----
     import { onMount } from "svelte";
+    import { scienceLocations, hoveredScienceId } from '../../stores/map';
 
 // ----- COMPONENTS -----
     import DoubleVideo from '$lib/components/double_video.svelte';
     import Map from '$lib/components/map.svelte';
     import SamplingLocations from '$lib/components/sampling_locations.svelte';
+    import InterestLocations from '$lib/components/interest_locations.svelte';
 
 
 // ----- STATES -----
@@ -38,11 +40,11 @@
 <main class="grid" style="grid-template-rows: 1fr; grid-template-columns: 5fr 3fr;">
     <div class="grid-nest" style="grid-template-rows: 1fr 1fr; grid-template-columns: 4fr 1fr;">
         <div class="grid-item" style="padding-right: 0">
-            <Map/>
+            <Map mode={'science'}/>
         </div>
         <div class="grid-item" style="padding-left: 0;">
         <div class="container" style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
-            <h1 class="heading"> Locations of interest </h1>
+            <InterestLocations locations={scienceLocations} hoveredId={hoveredScienceId}/>
         </div>
         </div>
         <div class="grid-item" style="padding-right: 0">

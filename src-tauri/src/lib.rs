@@ -7,8 +7,11 @@ use std::sync::Mutex;
 use tauri::Manager;
 
 use commands::rover_states::RoverState;
-use commands::rover_commands::RoverAddress;
 use commands::network::DummyStreamHandle;
+
+pub struct RoverAddress {
+    pub ip: String
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -74,8 +77,11 @@ pub fn run() {
             });
 
             // Spawn udp service
+            let rover_address = app.state::<RoverAddress>();
+            let ip = rover_address.ip.clone(); // clone because state is shared
+
             let udp_service = tauri::async_runtime::block_on(async {
-                network::service::UdpService::new("0.0.0.0:9000")
+                network::service::UdpService::new(&ip)
                     .await
                     .expect("Failed to start UDP service")
             });

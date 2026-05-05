@@ -64,7 +64,7 @@
 
                 <!-- START -->
                 <div
-                    class="task-card start"
+                    class="task-card start {$hoveredNavId === $startPoint?.id ? 'hovered' : ''}"
                     onmouseenter={() => $startPoint && hoveredNavId.set($startPoint.id)}
                     onmouseleave={() => hoveredNavId.set(null)}
                 >
@@ -82,7 +82,7 @@
                 >
                     {#each $waypoints as waypoint, i (waypoint.id)}
                         <div
-                            class="task-card waypoint"
+                            class="task-card waypoint {$hoveredNavId === waypoint.id ? 'hovered' : ''}"
                             onmouseenter={() => hoveredNavId.set(waypoint.id)}
                             onmouseleave={() => hoveredNavId.set(null)}
                         >
@@ -99,7 +99,7 @@
 
                 <!-- END -->
                 <div
-                    class="task-card end"
+                    class="task-card end {$hoveredNavId === $endPoint?.id ? 'hovered' : ''}"
                     onmouseenter={() => $endPoint && hoveredNavId.set($endPoint.id)}
                     onmouseleave={() => hoveredNavId.set(null)}
                 >

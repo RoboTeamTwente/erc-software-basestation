@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 use tauri::State;
 use serde::Deserialize;
-use crate::commands::rover_commands::RoverAddress;
+use crate::RoverAddress;
 
 pub struct RoverState {
     pub drive_manual_mode: Mutex<bool>,

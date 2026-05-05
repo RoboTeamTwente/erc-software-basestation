@@ -16,7 +16,7 @@
 <div class="grid">
 
     <div class="grid-item" style="padding-right: 0">
-        <Map />
+        <Map mode={'navigation'}/>
     </div>
 
     <div class="grid-nest" style="grid-template-columns: 2fr 3fr; padding-left: 0">

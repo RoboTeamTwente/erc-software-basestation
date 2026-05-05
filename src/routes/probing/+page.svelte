@@ -4,6 +4,7 @@
 
 // ----- SVELTE -----
     import { onMount } from "svelte";
+    import {probingLocations, hoveredProbingId} from '../../stores/map';
 
 // ----- COMPONENTS -----
     import Map from '$lib/components/map.svelte';
@@ -43,12 +44,12 @@
 
 <main class="grid">
     <div class="grid-item" style="padding-right: 0">
-        <Map />
+        <Map mode={'probing'}/>
     </div>
 
     <div class="grid-nest" style="grid-template-columns: 1fr 2fr">
         <div class="grid-item">
-            <InterestLocations />
+            <InterestLocations locations={probingLocations} hoveredId={hoveredProbingId}/>
         </div>
         <div class="grid-item">
             <Probes />

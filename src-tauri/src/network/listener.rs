@@ -125,6 +125,7 @@ pub async fn run_listener(
                 if t.gps.ready() {
                     app_handle.emit( "gps-update", &msg);
                 }
+                //println!("GPS update: lat {}, lon {}, alt {}, speed {}, heading {}", msg.latitude, msg.longitude, msg.altitude, msg.speed, msg.heading);
             }
             Payload::PhInfo(msg) => {
                 if t.ph.ready() {
