@@ -4,15 +4,13 @@ use serde::Deserialize;
 use crate::RoverAddress;
 
 pub struct RoverState {
-    pub drive_manual_mode: Mutex<bool>,
-    pub arm_manual_mode: Mutex<bool>,
+    pub manual_mode: Mutex<bool>,
     pub pickup_mode: Mutex<bool>,
 }
 
 #[derive(Deserialize)]
 pub enum StateType {
-    DriveManual,
-    ArmManual,
+    Manual,
     Pickup,
 }
 
@@ -23,15 +21,9 @@ pub async fn set_state(
     state: State<'_, RoverState>,
 ) -> Result<(), String> {
     match state_type {
-        StateType::DriveManual => {
+        StateType::Manual => {
             *state
-                .drive_manual_mode
-                .lock()
-                .map_err(|_| "Lock failed")? = value;
-        }
-        StateType::ArmManual => {
-            *state
-                .arm_manual_mode
+                .manual_mode
                 .lock()
                 .map_err(|_| "Lock failed")? = value;
         }
@@ -52,12 +44,8 @@ pub async fn get_state(
     state: State<'_, RoverState>,
 ) -> Result<bool, String> {
     let value = match state_type {
-        StateType::DriveManual => *state
-            .drive_manual_mode
-            .lock()
-            .map_err(|_| "Lock failed")?,
-        StateType::ArmManual => *state
-            .arm_manual_mode
+        StateType::Manual => *state
+            .manual_mode
             .lock()
             .map_err(|_| "Lock failed")?,
         StateType::Pickup => *state

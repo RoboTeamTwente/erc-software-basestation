@@ -17,8 +17,7 @@ pub struct RoverAddress {
 pub fn run() {
     tauri::Builder::default()
         .manage(RoverState {
-            drive_manual_mode: Mutex::new(true),
-            arm_manual_mode: Mutex::new(true),
+            manual_mode: Mutex::new(true),
             pickup_mode: Mutex::new(false),
         })
         .manage(RoverAddress {
