@@ -8,11 +8,11 @@
     import { onMount } from 'svelte';
     import { get } from "svelte/store";
     import '../../global.css';
-    import { displayedMap, pinnedCoords, waypoints, startPoint, endPoint, hoveredNavId } from "../../stores/map";
-    import type { PinnedCoord } from "../../stores/map";
-    import { gpsPosition, scienceLocations, probingLocations } from '../../stores/map';
-    import { hoveredScienceId, hoveredProbingId } from '../../stores/map';
-    import type { GpsPosition } from '../../stores/map';
+    import { displayedMap, pinnedCoords, waypoints, startPoint, endPoint, hoveredNavId } from "../stores/map";
+    import type { PinnedCoord } from "../stores/map";
+    import { gpsPosition, scienceLocations, probingLocations } from '../stores/map';
+    import { hoveredScienceId, hoveredProbingId } from '../stores/map';
+    import type { GpsPosition } from '../stores/map';
 
     interface MapMeta {
         img_width:        number;

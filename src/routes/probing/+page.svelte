@@ -4,7 +4,7 @@
 
 // ----- SVELTE -----
     import { onMount } from "svelte";
-    import {probingLocations, hoveredProbingId} from '../../stores/map';
+    import {probingLocations, hoveredProbingId} from '../../lib/stores/map';
 
 // ----- COMPONENTS -----
     import Map from '$lib/components/map.svelte';

@@ -1,7 +1,8 @@
 <script lang="ts">
     import type { Writable } from 'svelte/store';
-    import type { InterestLocation } from "../../stores/map";
+    import type { InterestLocation } from "$lib/stores/map";
     import '../../global.css';
+    import '$lib/css/map.css';
 
     let { locations, hoveredId }: {
         locations: Writable<InterestLocation[]>;
@@ -75,37 +76,3 @@
     </div>
 </div>
 
-<style>
-.loc-row {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.3rem 0.75rem;
-}
-
-.loc-row.hovered {
-    background: color-mix(in srgb, var(--color-rtpurple) 15%, transparent);
-    border-radius: 4px;
-}
-
-.loc-text {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-}
-
-.loc-name {
-    color: var(--color-rtpurple);
-    font-size: 0.85rem;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.loc-coord {
-    color: var(--color-muted, #888);
-    font-size: 0.72rem;
-}
-</style>

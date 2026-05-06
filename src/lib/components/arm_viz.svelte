@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-  import { armData } from '$lib/state/arm';
+  import { armData } from '$lib/stores/arm';
   import type { ArmBoardActualPositions } from '$lib/proto/components/arm_board/movement_software_feedback';
 
   import'$lib/css/arm.css';

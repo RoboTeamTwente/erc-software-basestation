@@ -5,8 +5,8 @@
     import { confirm } from '@tauri-apps/plugin-dialog';
     import '../../global.css';
     import '../css/map.css'
-    import { waypoints, startPoint, endPoint, pinnedCoords, hoveredNavId } from "../../stores/map";
-    import type { Waypoint, PinnedCoord } from "../../stores/map";
+    import { waypoints, startPoint, endPoint, pinnedCoords, hoveredNavId } from "../stores/map";
+    import type { Waypoint, PinnedCoord } from "../stores/map";
 
     let { style } = $props();
 

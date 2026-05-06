@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { listen } from '@tauri-apps/api/event';
-  import { armData, armFeedback } from '$lib/state/arm';
+  import { armData, armFeedback } from '$lib/stores/arm';
   import { ArmBoardMovementFeedback_ArmError, ArmBoardMovementFeedback } from '$lib/proto/components/arm_board/movement_software_feedback';
   import '$lib/css/arm.css';
 

@@ -3,7 +3,7 @@
     import { listen, type UnlistenFn  } from '@tauri-apps/api/event';
     import { onMount } from "svelte";
     import { BasestationDetectedObject, detectedObjectTypeToJSON } from "$lib/proto/components/basestation/detected_object";
-    import { detectedObjectsState, handleDetectedObjects } from "$lib/state/detectedObjects.svelte";
+    import { detectedObjectsState, handleDetectedObjects } from "$lib/stores/detected_objects.svelte";
 
     function formatType(type: number | undefined) {
         const raw = detectedObjectTypeToJSON(type ?? 0);

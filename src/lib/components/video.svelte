@@ -2,7 +2,7 @@
     import { invoke } from "@tauri-apps/api/core";
     import { onMount } from "svelte";
     import '../../global.css';
-    import { detectedObjectsState, handleDetectedObjects } from "$lib/state/detectedObjects.svelte";
+    import { detectedObjectsState, handleDetectedObjects } from "$lib/stores/detected_objects.svelte";
     import { detectedObjectTypeToJSON } from "$lib/proto/components/basestation/detected_object";
 
     type Props = {

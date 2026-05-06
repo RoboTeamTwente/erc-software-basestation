@@ -13,7 +13,7 @@
     import '../global.css';
     import '../navbar.css';
     import '../components.css';
-    import { samples } from "../stores/samples";
+    import { samples } from "$lib/stores/samples";
 
 
     let { children } = $props();
@@ -26,6 +26,9 @@
         { name: "Probing", path: "/probing" }
     ];
     
+    let dropdownElTask: HTMLDivElement;
+    let dropdownElDrive: HTMLDivElement;
+    let dropdownElArm: HTMLDivElement;
 
 // ----- UI STATE -----
     let dropdownOpenTask = $state(false);
@@ -73,10 +76,6 @@
         }
     }
 
-    let dropdownElTask: HTMLDivElement;
-    let dropdownElDrive: HTMLDivElement;
-    let dropdownElArm: HTMLDivElement;
-
     $effect(() => {
         if (dropdownOpenTask) {
             document.addEventListener('click', handleClickOutsideTask);
@@ -101,8 +100,8 @@
 
 
 // ----- NAVIGATION AND ROVER MODES -----
-    function navigateTo(path: string) {
-        goto(path);
+    async function navigateTo(path: string) {
+        await goto(path);
         currentPage = links.find(link => link.path === path)?.name || "Task";
         dropdownOpenTask = false;
     }
@@ -264,48 +263,18 @@
     }
 
 
-// ===============================
-// KEYBOARD INPUT
-// ===============================
-	function handleKeyDown(e: KeyboardEvent) {
-		if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
-			e.preventDefault(); // stop scrolling
-			pressed.add(e.code);
-			sendCommand();
-		}
-    }
-
-	function handleKeyUp(e: KeyboardEvent) {
-		pressed.delete(e.code);
-		sendCommand();
-	}
-
-	async function sendCommand() {
-		// Example movement logic
-		const command = {
-			up: pressed.has("ArrowUp"),
-			down: pressed.has("ArrowDown"),
-			left: pressed.has("ArrowLeft"),
-			right: pressed.has("ArrowRight")
-		};
-        await invoke("pressed_key", {command});
-	}
-
 
 // ===============================
 // LIFECYCLE
 // ===============================
-    initCameraHealthListener();
+    
     
 	onMount(async () => {
-		window.addEventListener("keydown", handleKeyDown);
-		window.addEventListener("keyup", handleKeyUp);
+        initCameraHealthListener();
 	});
 
     onDestroy(() => {
         cancelAnimationFrame(rafId);
-		window.removeEventListener("keydown", handleKeyDown);
-		window.removeEventListener("keyup", handleKeyUp);
     });
 
 </script>
