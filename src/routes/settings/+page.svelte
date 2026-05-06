@@ -116,6 +116,32 @@
         loading = false;
         }
     }
+
+// ----- CHANGE DESTINATION IP -----
+    let roverAddress = '';
+    let roverAddressStatus: 'idle' | 'saved' | 'error' = 'idle';
+    let roverAddressError = '';
+
+    async function loadRoverAddress() {
+        try {
+            roverAddress = await invoke<string>('get_rover_address');
+        } catch (e) {
+            console.error('Failed to load rover address:', e);
+        }
+    }
+
+    async function changeRoverIP() {
+        try {
+            await invoke('set_rover_address', { address: roverAddress });
+            roverAddressStatus = 'saved';
+            setTimeout(() => roverAddressStatus = 'idle', 2000);
+        } catch (e) {
+            roverAddressError = e as string;
+            roverAddressStatus = 'error';
+        }
+    }
+
+    loadRoverAddress();
 </script>
 
 <div class="grid">
@@ -198,10 +224,6 @@
         <div class="container">
             <h1 class="heading"> <span> My Info </span> </h1>
 
-            <button class="button" style="margin: 10px;" onclick={clearCache}>
-                Clear cache
-            </button>
-
             <button class="button" style="margin: 10px" onclick={() => whereIsTheModel()}>
                 Where is the model
             </button>
@@ -242,6 +264,43 @@
                 Start dummy object stream
             </button>
 
+        </div>
+    </div>
+
+
+    <div class="grid-item" style="flex-direction: column;">
+        <div class="container">
+            <h1 class="heading"> <span> Rover Connection </span> </h1>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin: 10px;">
+                <input
+                    type="text"
+                    placeholder="192.168.1.10:9000"
+                    bind:value={roverAddress}
+                    style="flex: 1; padding: 6px 10px; font-size: 14px;"
+                />
+                <button class="button" onclick={changeRoverIP}>
+                    Save
+                </button>
+            </div>
+
+            {#if roverAddressStatus === 'saved'}
+                <p style="color: green; margin: 0 10px;">✓ Address saved</p>
+            {/if}
+
+            {#if roverAddressStatus === 'error'}
+                <p style="color: red; margin: 0 10px;">✗ {roverAddressError}</p>
+            {/if}
+        </div>
+    </div>
+
+    <div class="grid-item" style="flex-direction: column;">
+        <div class="container">
+            <h1 class="heading"> <span> Cache </span> </h1>
+
+            <button class="button" style="margin: 10px;" onclick={clearCache}>
+                Clear cache
+            </button>
         </div>
     </div>
 

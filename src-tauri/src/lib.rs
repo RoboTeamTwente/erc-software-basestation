@@ -10,7 +10,7 @@ use commands::rover_states::RoverState;
 use commands::network::DummyStreamHandle;
 
 pub struct RoverAddress {
-    pub ip: String
+    pub ip: Mutex<String> 
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -22,7 +22,7 @@ pub fn run() {
             braked: Mutex::new(false),
         })
         .manage(RoverAddress {
-            ip: "127.0.0.1:9000".into(),
+            ip: Mutex::new("127.0.0.1:9000".into()), // temporary default
         })
 
         //Plugins must be loaded here
@@ -50,6 +50,8 @@ pub fn run() {
             commands::network::start_dummy_streams,
             commands::network::stop_dummy_streams,
             commands::network::start_detection_sim,
+            commands::network::get_rover_address,
+            commands::network::set_rover_address,
             commands::load_model::load_model,
             commands::load_model::debug_resource_dir,
             commands::map_commands::render_map,
@@ -68,17 +70,14 @@ pub fn run() {
             if let Err(e) = commands::checks::clear_cache_on_startup() {
                 eprintln!("Failed to clear cache on startup: {}", e);
             }
-            // Spawn gstream receiver
-            tauri::async_runtime::spawn(async move {
-                // Import your streaming module
-                if let Err(e) = commands::gstreamer::stream(app_handle).await {
-                    eprintln!("MJPEG streaming server error: {}", e);
-                }
-            });
 
             // Spawn udp service
-            let rover_address = app.state::<RoverAddress>();
-            let ip = rover_address.ip.clone(); // clone because state is shared
+            let config = commands::config::load_config(app.handle());
+            *app.state::<RoverAddress>().ip.lock().unwrap() = config.ip;
+
+            // Extract ip right here, just before it's needed
+            let ip = app.state::<RoverAddress>().ip.lock().unwrap().clone();
+
 
             let udp_service = tauri::async_runtime::block_on(async {
                 network::service::UdpService::new(&ip)
@@ -99,6 +98,14 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = network::listener::run_listener(udp_socket, listener_handle).await {
                     eprintln!("UDP listener error: {e}");
+                }
+            });
+
+            // Spawn gstream receiver
+            tauri::async_runtime::spawn(async move {
+                // Import your streaming module
+                if let Err(e) = commands::gstreamer::stream(app_handle).await {
+                    eprintln!("MJPEG streaming server error: {}", e);
                 }
             });
 

@@ -266,7 +266,7 @@ fn dispatch_drive(app: &AppHandle, drive: BasestationManualDrive) {
     }
 
     let socket = app.state::<UdpService>().socket();
-    let target = app.state::<RoverAddress>().ip.clone();
+    let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
 
     tauri::async_runtime::spawn(async move {
         send_drive(socket, target, drive).await
@@ -284,7 +284,7 @@ fn dispatch_brake(app: &AppHandle, engaged: bool) {
     *braked = engaged;
 
     let socket = app.state::<UdpService>().socket();
-    let target = app.state::<RoverAddress>().ip.clone();
+    let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
 
     tauri::async_runtime::spawn(async move {
         send_brake(socket, target, engaged).await
@@ -297,7 +297,7 @@ fn dispatch_arm(app: &AppHandle, arm: BasestationManualArmMovement) {
     }
 
     let socket = app.state::<UdpService>().socket();
-    let target = app.state::<RoverAddress>().ip.clone();
+    let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
 
     tauri::async_runtime::spawn(async move {
         send_arm(socket, target, arm).await

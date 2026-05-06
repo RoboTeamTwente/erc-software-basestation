@@ -23,8 +23,8 @@ let modalOpen = $state(false);
 
                     <h2 class="subheading">General controls</h2>
                     <ul>                       
-                        <li><strong>- Button</strong> Toggle current state (automatic/manual)</li>
-                        <li><strong>+ Button</strong> Toggle between drive and pickup mode</li>
+                        <li><strong>- Button</strong> Toggle automatic/manual</li>
+                        <li><strong>+ Button</strong> Toggle drive/pickup mode</li>
                     </ul>
 
                     <h2 class="subheading">Driving Mode</h2>

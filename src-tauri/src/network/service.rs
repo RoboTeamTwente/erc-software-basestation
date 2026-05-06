@@ -8,15 +8,15 @@ pub struct UdpService {
 }
 
 impl UdpService {
-    pub async fn new(bind_addr: &str) -> anyhow::Result<Self> {
-        let addr: SocketAddr = bind_addr.parse()?;
-        
+    pub async fn new(_rover_addr: &str) -> anyhow::Result<Self> {
+        let bind_addr: SocketAddr = "0.0.0.0:9000".parse()?;
+
         let socket2 = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))?;
         println!("recv buf size: {}", socket2.recv_buffer_size()?);
         socket2.set_reuse_address(true)?;
         socket2.set_recv_buffer_size(4 * 1024 * 1024)?;
         socket2.set_nonblocking(true)?;
-        socket2.bind(&addr.into())?;
+        socket2.bind(&bind_addr.into())?;
 
         let std_sock: std::net::UdpSocket = socket2.into();
         let socket = UdpSocket::from_std(std_sock)?;

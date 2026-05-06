@@ -89,3 +89,32 @@ pub async fn stop_dummy_streams(
     }
     Ok(())
 }
+
+#[tauri::command]
+pub async fn get_rover_address(app: tauri::AppHandle) -> Result<String, String> {
+    let config = crate::commands::config::load_config(&app);
+    Ok(config.ip)
+}
+
+#[tauri::command]
+pub async fn set_rover_address(
+    app: tauri::AppHandle,
+    address: String,
+    state: tauri::State<'_, crate::RoverAddress>,
+) -> Result<(), String> {
+    // Basic validation
+    address.parse::<std::net::SocketAddr>()
+        .map_err(|_| "Invalid address format. Use IP:PORT (e.g. 192.168.1.10:9000)".to_string())?;
+
+    // Persist to disk
+    let config = crate::commands::config::RoverConfig { ip: address.clone() };
+    crate::commands::config::save_config(&app, &config)?;
+
+    // Update in-memory state
+    *state.ip.lock().unwrap() = address;
+
+    // NOTE: The UDP socket itself is already bound — it will use the new
+    // address for outgoing packets on the next send automatically since
+    // your send commands read from RoverAddress at call time.
+    Ok(())
+}

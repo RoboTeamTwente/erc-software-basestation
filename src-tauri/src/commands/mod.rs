@@ -8,3 +8,4 @@ pub mod network;
 pub mod load_model; 
 pub mod map_processor;
 pub mod map_commands;
+pub mod config;
