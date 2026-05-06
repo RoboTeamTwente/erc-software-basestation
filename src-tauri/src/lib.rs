@@ -19,6 +19,7 @@ pub fn run() {
         .manage(RoverState {
             manual_mode: Mutex::new(true),
             pickup_mode: Mutex::new(false),
+            braked: Mutex::new(false),
         })
         .manage(RoverAddress {
             ip: "127.0.0.1:9000".into(),

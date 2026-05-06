@@ -30,18 +30,13 @@
 
 // ----- UI STATE -----
     let dropdownOpenTask = $state(false);
-    let dropdownOpenDrive = $state(false);
-    let dropdownOpenArm = $state(false);
     let currentPage = $state("Task");
 
 
 // ----- ROVER MODES -----
     let manualMode = $state(true);
     let pickupMode = $state(false);
-
-
-// ----- INPUT STATE -----
-    let pressed = new Set();
+    let braked = $state(false);
 
 
 // ----- DROPDOWN LOGIC -----
@@ -74,6 +69,7 @@
     async function getModes() {
         pickupMode = await invoke("get_state", { stateType: "Pickup" });
         manualMode = await invoke("get_state", { stateType: "Manual" });
+        braked = await invoke("get_state", { stateType: "Braked" });
     }
 
     async function togglePickup() {
@@ -282,6 +278,12 @@
             <img src="/driving.svg" alt="Driving mode icon" class="mode-icon"/>
         {/if}
     </button>
+
+    {#if braked}
+        <div class="center-icons" style="margin-left: 4rem;"> 
+            <img src="/parking.svg" alt="Parking icon" class="mode-icon"/>
+        </div>
+    {/if}
 
     <!-- Right-aligned icons and controls -->
     <div class="right-icons">

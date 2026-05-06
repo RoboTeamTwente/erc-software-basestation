@@ -12,6 +12,7 @@
     color: var(--color-white);
     gap: 1rem;
     column-gap: 2%;
+    position: relative;
 }
 
 /* Right-aligned navbar section */
@@ -24,11 +25,12 @@
 
 /* Centered navbar section */
 .center-icons {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    margin-left: auto;
-    margin-right: auto;
-    gap: 2rem;
     align-items: center;
+    gap: 2rem;
 }
 
 /* Navbar icon link wrapper */

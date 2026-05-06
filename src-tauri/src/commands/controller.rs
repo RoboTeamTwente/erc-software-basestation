@@ -279,6 +279,10 @@ fn dispatch_brake(app: &AppHandle, engaged: bool) {
         return;
     }
 
+    let rov_state = app.state::<RoverState>();
+    let mut braked = rov_state.braked.lock().unwrap();
+    *braked = engaged;
+
     let socket = app.state::<UdpService>().socket();
     let target = app.state::<RoverAddress>().ip.clone();
 
@@ -478,6 +482,7 @@ pub fn start_controller_listener(app: AppHandle) {
                         if !is_pickup_mode(&app) {
                             //println!("[controller] Right trigger -> brake ENGAGED (momentary)");
                             shared.lock().unwrap().drive.brake = true;
+
                             dispatch_brake(&app, true);
  
                             let shared = Arc::clone(&shared);
@@ -494,6 +499,7 @@ pub fn start_controller_listener(app: AppHandle) {
                         if !is_pickup_mode(&app) {
                             // Drive mode: release brake .
                             shared.lock().unwrap().drive.brake = false;
+
                             dispatch_brake(&app, false);
                         }
                     }
@@ -504,6 +510,7 @@ pub fn start_controller_listener(app: AppHandle) {
                             let mut state = shared.lock().unwrap();
                             state.drive.brake = !state.drive.brake;
                             let engaged = state.drive.brake;
+
                             drop(state);
                             // println!(
                             //     "[controller] Left trigger2 -> brake {}",

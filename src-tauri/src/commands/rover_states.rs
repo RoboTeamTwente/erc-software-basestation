@@ -6,12 +6,14 @@ use crate::RoverAddress;
 pub struct RoverState {
     pub manual_mode: Mutex<bool>,
     pub pickup_mode: Mutex<bool>,
+    pub braked: Mutex<bool>,
 }
 
 #[derive(Deserialize)]
 pub enum StateType {
     Manual,
     Pickup,
+    Braked,
 }
 
 #[tauri::command]
@@ -33,6 +35,12 @@ pub async fn set_state(
                 .lock()
                 .map_err(|_| "Lock failed")? = value;
         }
+        StateType::Braked => {
+            *state
+                .braked
+                .lock()
+                .map_err(|_| "Lock failed")? = value;
+        }
     }
 
     Ok(())
@@ -50,6 +58,10 @@ pub async fn get_state(
             .map_err(|_| "Lock failed")?,
         StateType::Pickup => *state
             .pickup_mode
+            .lock()
+            .map_err(|_| "Lock failed")?,
+        StateType::Braked => *state
+            .braked
             .lock()
             .map_err(|_| "Lock failed")?,
     };
