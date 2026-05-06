@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { Writable } from 'svelte/store';
     import type { InterestLocation } from "$lib/stores/map";
-    import '../../global.css';
+    import '$lib/css/global.css';
     import '$lib/css/map.css';
 
     let { locations, hoveredId }: {

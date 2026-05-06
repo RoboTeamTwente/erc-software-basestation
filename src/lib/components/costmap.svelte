@@ -1,5 +1,5 @@
 <script lang="ts">
-    import '../../global.css';
+    import '$lib/css/global.css';
     export let style: string = "";
 </script>
 

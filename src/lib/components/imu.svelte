@@ -5,7 +5,7 @@
     import { type SensorBoardIMUInfo, IMUErrorCode, iMUErrorCodeToJSON } from '$lib/proto/components/sensor_board/imu_sensor';
 
 // ----- STYLE IMPORTS -----
-    import '../../imu.css';
+    import '$lib/css/imu.css';
 
 // ── Maps ───────────────────────────────────────────────────────────────────
     const SENSOR_STATE: Record<number, string> = {

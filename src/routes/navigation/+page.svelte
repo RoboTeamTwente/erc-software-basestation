@@ -1,7 +1,7 @@
 
 <script>
 // ----- STYLES -----
-    import "../../global.css"
+    import "$lib/css/global.css"
 
 // ----- COMPONENTS -----
     import DoubleVideo from '$lib/components/double_video.svelte';

@@ -4,7 +4,7 @@
 
 // ----- SVELTE -----
     import { onMount } from "svelte";
-    import { scienceLocations, hoveredScienceId } from '../../lib/stores/map';
+    import { scienceLocations, hoveredScienceId } from '$lib/stores/map';
 
 // ----- COMPONENTS -----
     import DoubleVideo from '$lib/components/double_video.svelte';

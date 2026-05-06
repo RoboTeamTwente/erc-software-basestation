@@ -3,10 +3,10 @@
     import { open } from "@tauri-apps/plugin-dialog";
     import { dndzone } from "svelte-dnd-action";
     import { confirm } from '@tauri-apps/plugin-dialog';
-    import '../../global.css';
-    import '../css/map.css'
-    import { waypoints, startPoint, endPoint, pinnedCoords, hoveredNavId } from "../stores/map";
-    import type { Waypoint, PinnedCoord } from "../stores/map";
+    import '$lib/css/global.css';
+    import '$lib/css/map.css'
+    import { waypoints, startPoint, endPoint, pinnedCoords, hoveredNavId } from "$lib/stores/map";
+    import type { Waypoint, PinnedCoord } from "$lib/stores/map";
 
     let { style } = $props();
 

@@ -10,9 +10,9 @@
     import { initCameraHealthListener } from '../state.svelte.js';
 
 // ----- STYLES -----
-    import '../global.css';
-    import '../navbar.css';
-    import '../components.css';
+    import '$lib/css/global.css';
+    import '$lib/css/navbar.css';
+    import '$lib/css/components.css';
     import { samples } from "$lib/stores/samples";
 
 

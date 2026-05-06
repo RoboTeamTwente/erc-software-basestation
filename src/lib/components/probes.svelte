@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Probe } from '../../types';
-    import { probes } from '../stores/probes';
+    import { probes } from '$lib/stores/probes';
 
     import Video from './video.svelte';
     import { armCamera, depthCamera, frontCamera } from "../../state.svelte.js";

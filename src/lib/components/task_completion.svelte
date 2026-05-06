@@ -9,7 +9,7 @@
     import { onMount } from 'svelte';
 
 // ----- STYLES -----
-    import '../../global.css';
+    import '$lib/css/global.css';
     import type { Sample } from "../../types";
 
 

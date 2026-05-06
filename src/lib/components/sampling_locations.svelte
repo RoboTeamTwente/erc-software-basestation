@@ -8,7 +8,7 @@
 
 // -----IMPORTS -----
     import SampleField from '$lib/components/SampleField.svelte';
-    import { samples } from "../stores/samples";
+    import { samples } from "$lib/stores/samples";
     import type { Sample } from "../../types";
     import Video from '$lib/components/video.svelte';
     import { armCamera, depthCamera, frontCamera } from "../../state.svelte.js";
