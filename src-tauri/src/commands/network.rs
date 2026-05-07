@@ -2,6 +2,7 @@ use tauri::State;
 
 use tokio::sync::Mutex; 
 use tokio_util::sync::CancellationToken;
+use crate::UdpServiceHandle;
 
 use crate::network::service::UdpService;
 
@@ -15,18 +16,15 @@ pub struct DummyStreamHandle {
 // PING COMMAND
 #[tauri::command]
 pub async fn send_ping_cmd(
-    state: State<'_, UdpService>,
+    state: State<'_, UdpServiceHandle>,
     packet_type: String
 ) -> Result<(), String> {
-    // let socket = state.socket();
-    // let target = "127.0.0.1:9000";
-    // let packet_type = packet_type.unwrap_or(PingPacketType::Imu);
+    let service: tokio::sync::MutexGuard<'_, UdpService> =
+        state.service.lock().await;
+    let socket = service.socket();
 
-    // let envelope = build_ping_envelope(packet_type);
-    // sender::send_envelope(&socket, target, envelope)
-    //     .await
-    //     .map_err(|e| e.to_string())
     println!("Ping command received for packet type: {:?}", packet_type);
+
     Ok(())
 }
 
@@ -107,7 +105,8 @@ pub async fn set_rover_address(
         .map_err(|_| "Invalid address format. Use IP:PORT (e.g. 192.168.1.10:9000)".to_string())?;
 
     // Persist to disk
-    let config = crate::commands::config::RoverConfig { ip: address.clone() };
+    let mut config = crate::commands::config::load_config(&app);
+    config.ip = address.clone();
     crate::commands::config::save_config(&app, &config)?;
 
     // Update in-memory state
@@ -116,5 +115,46 @@ pub async fn set_rover_address(
     // NOTE: The UDP socket itself is already bound — it will use the new
     // address for outgoing packets on the next send automatically since
     // your send commands read from RoverAddress at call time.
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_local_port(
+    app: tauri::AppHandle,
+    port: u16,
+    handle: tauri::State<'_, UdpServiceHandle>,
+) -> Result<(), String> {
+    // Persist
+    let mut config = crate::commands::config::load_config(&app);
+    config.local_port = port;
+    crate::commands::config::save_config(&app, &config)?;
+
+    // Cancel the existing listener
+    let old_token: tokio::sync::MutexGuard<'_, CancellationToken> =
+        handle.restart_token.lock().await;
+    old_token.cancel();
+    drop(old_token);
+
+    // Create new service bound to new port
+    let new_service = crate::network::service::UdpService::new(port)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let new_socket = new_service.socket();
+
+    // Replace the service
+    *handle.service.lock().await = new_service;
+
+    // New cancellation token for the new listener
+    let new_token = CancellationToken::new();
+    *handle.restart_token.lock().await = new_token.clone();
+
+    // Spawn new listener
+    let listener_handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        crate::network::listener::run_listener(new_socket, new_token, listener_handle).await;
+    });
+
+    println!("Rebound UDP listener to port {}", port);
     Ok(())
 }

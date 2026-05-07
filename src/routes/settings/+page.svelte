@@ -117,14 +117,16 @@
         }
     }
 
-// ----- CHANGE DESTINATION IP -----
+// ----- CHANGE ADDRESSES -----
     let roverAddress = '';
     let roverAddressStatus: 'idle' | 'saved' | 'error' = 'idle';
     let roverAddressError = '';
+    let localPort: number = 9000;
 
     async function loadRoverAddress() {
         try {
             roverAddress = await invoke<string>('get_rover_address');
+            localPort = await invoke<number>('get_local_port');
         } catch (e) {
             console.error('Failed to load rover address:', e);
         }
@@ -139,6 +141,10 @@
             roverAddressError = e as string;
             roverAddressStatus = 'error';
         }
+    }
+
+    async function changeLocalPort() {
+        await invoke('set_local_port', { port: localPort });
     }
 
     loadRoverAddress();
@@ -282,6 +288,9 @@
                 <button class="button" onclick={changeRoverIP}>
                     Save
                 </button>
+
+                <input type="number" bind:value={localPort} min="1024" max="65535" />
+                <button class="button" onclick={changeLocalPort}>Set local port</button>
             </div>
 
             {#if roverAddressStatus === 'saved'}

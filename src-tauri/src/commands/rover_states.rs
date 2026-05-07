@@ -68,14 +68,3 @@ pub async fn get_state(
 
     Ok(value)
 }
-
-// async fn sync_with_rover(state: State<'_, UdpService>, rover_addr: State<'_, RoverAddress>) {
-
-//     println!("Synced mode with rover: {}", );
-    // let _socket = state.socket();
-    // let _target = rover_addr.ip.as_str(); 
-    
-
-//     println!("Synced with rover");
-//     Ok(())
-// }

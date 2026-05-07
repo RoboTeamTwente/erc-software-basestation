@@ -4,10 +4,10 @@ use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
 
+use crate::UdpServiceHandle;
 use crate::RoverAddress;
 use crate::commands::rover_states::RoverState;
 use crate::network::sender;
-use crate::network::service::UdpService;
 use crate::proto::packets::*;
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -265,7 +265,9 @@ fn dispatch_drive(app: &AppHandle, drive: BasestationManualDrive) {
         return;
     }
 
-    let socket = app.state::<UdpService>().socket();
+    let socket = tauri::async_runtime::block_on(async {
+        app.state::<UdpServiceHandle>().service.lock().await.socket()
+    });
     let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
 
     tauri::async_runtime::spawn(async move {
@@ -283,7 +285,9 @@ fn dispatch_brake(app: &AppHandle, engaged: bool) {
     let mut braked = rov_state.braked.lock().unwrap();
     *braked = engaged;
 
-    let socket = app.state::<UdpService>().socket();
+    let socket = tauri::async_runtime::block_on(async {
+        app.state::<UdpServiceHandle>().service.lock().await.socket()
+    });
     let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
 
     tauri::async_runtime::spawn(async move {
@@ -296,7 +300,9 @@ fn dispatch_arm(app: &AppHandle, arm: BasestationManualArmMovement) {
         return;
     }
 
-    let socket = app.state::<UdpService>().socket();
+    let socket = tauri::async_runtime::block_on(async {
+        app.state::<UdpServiceHandle>().service.lock().await.socket()
+    });
     let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
 
     tauri::async_runtime::spawn(async move {

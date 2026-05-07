@@ -5,12 +5,21 @@ mod network;
 
 use std::sync::Mutex;
 use tauri::Manager;
+use tokio::sync::Mutex as TokioMutex;
+use tokio_util::sync::CancellationToken;
+use std::sync::Arc;
 
 use commands::rover_states::RoverState;
+use crate::network::service::UdpService;
 use commands::network::DummyStreamHandle;
 
 pub struct RoverAddress {
     pub ip: Mutex<String> 
+}
+
+pub struct UdpServiceHandle {
+    pub service: Arc<TokioMutex<UdpService>>,
+    pub restart_token: Arc<TokioMutex<CancellationToken>>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -52,6 +61,7 @@ pub fn run() {
             commands::network::start_detection_sim,
             commands::network::get_rover_address,
             commands::network::set_rover_address,
+            commands::network::set_local_port,
             commands::load_model::load_model,
             commands::load_model::debug_resource_dir,
             commands::map_commands::render_map,
@@ -66,44 +76,38 @@ pub fn run() {
             if let Err(e) = commands::file_management::ensure_storage_dirs_internal(app.handle()) {
                 eprintln!("Failed to ensure storage dirs: {}", e);
             }
-            
+
             if let Err(e) = commands::checks::clear_cache_on_startup() {
                 eprintln!("Failed to clear cache on startup: {}", e);
             }
 
-            // Spawn udp service
             let config = commands::config::load_config(app.handle());
-            *app.state::<RoverAddress>().ip.lock().unwrap() = config.ip;
+            *app.state::<RoverAddress>().ip.lock().unwrap() = config.ip.clone();
 
-            // Extract ip right here, just before it's needed
-            let ip = app.state::<RoverAddress>().ip.lock().unwrap().clone();
-
-
+            // block_on because setup is sync but UdpService::new is async
             let udp_service = tauri::async_runtime::block_on(async {
-                network::service::UdpService::new(&ip)
+                network::service::UdpService::new(config.local_port)
                     .await
                     .expect("Failed to start UDP service")
             });
 
-            // Extract socket BEFORE moving service
             let udp_socket = udp_service.socket();
+            let cancel_token = CancellationToken::new();
 
-            // Register service so commands can access it
-            app.handle().manage(udp_service);
-            app.handle().manage(DummyStreamHandle {
-                token: tokio::sync::Mutex::new(None),
+            app.handle().manage(UdpServiceHandle {
+                service: Arc::new(TokioMutex::new(udp_service)),
+                restart_token: Arc::new(TokioMutex::new(cancel_token.clone())),
             });
-            // Spawn listener and MOVE the socket into it
+            app.handle().manage(DummyStreamHandle {
+                token: TokioMutex::new(None),
+            });
+
             let listener_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = network::listener::run_listener(udp_socket, listener_handle).await {
-                    eprintln!("UDP listener error: {e}");
-                }
+                network::listener::run_listener(udp_socket, cancel_token, listener_handle).await;
             });
 
-            // Spawn gstream receiver
             tauri::async_runtime::spawn(async move {
-                // Import your streaming module
                 if let Err(e) = commands::gstreamer::stream(app_handle).await {
                     eprintln!("MJPEG streaming server error: {}", e);
                 }

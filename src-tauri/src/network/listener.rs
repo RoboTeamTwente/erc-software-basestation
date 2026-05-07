@@ -1,9 +1,10 @@
 use crate::proto::packets::{pb_envelope::Payload, PbEnvelope, BasestationDetectedObject};
 use prost::Message;
 use std::time::Instant;
-use std::collections::HashMap;
+use std::sync::Arc;
 use tauri::Emitter;
 use tokio::net::UdpSocket;
+use tokio_util::sync::CancellationToken;
 
 const THROTTLE_MS: u128 = 100;
 
@@ -13,12 +14,9 @@ struct Throttle {
 
 impl Throttle {
     fn new() -> Self {
-        Self {
-            last: Instant::now(),
-        }
+        Self { last: Instant::now() }
     }
 
-    // Returns true and resets the timer if enough time has passed
     fn ready(&mut self) -> bool {
         if self.last.elapsed().as_millis() >= THROTTLE_MS {
             self.last = Instant::now();
@@ -29,7 +27,6 @@ impl Throttle {
     }
 }
 
-// One throttle per payload variant, indexed for clarity
 struct Throttles {
     imu: Throttle,
     gps: Throttle,
@@ -84,24 +81,32 @@ impl Throttles {
     }
 }
 
-struct FrameBuffer {
-    frame_id: u32,
-    total: u32,
-    objects: Vec<BasestationDetectedObject>,
-}
-
 pub async fn run_listener(
-    socket: std::sync::Arc<UdpSocket>,
+    socket: Arc<UdpSocket>,
+    cancel: CancellationToken,
     app_handle: tauri::AppHandle,
-) -> anyhow::Result<()> {
+) {
     let mut buf = vec![0u8; 4096];
     let mut t = Throttles::new();
-
     let mut det_buffer: Vec<BasestationDetectedObject> = Vec::new();
     let mut det_frame: u32 = 0;
 
     loop {
-        let (len, _addr) = socket.recv_from(&mut buf).await?;
+        let (len, _addr) = tokio::select! {
+            _ = cancel.cancelled() => {
+                println!("UDP listener shutting down");
+                return;
+            }
+            result = socket.recv_from(&mut buf) => {
+                match result {
+                    Ok(v) => v,
+                    Err(e) => {
+                        eprintln!("UDP recv error: {e}");
+                        continue;
+                    }
+                }
+            }
+        };
 
         let envelope = match PbEnvelope::decode(&buf[..len]) {
             Ok(e) => e,
@@ -117,79 +122,49 @@ pub async fn run_listener(
 
         match payload {
             Payload::ImuInfo(msg) => {
-                if t.imu.ready() {
-                    app_handle.emit("imu-update", &msg);
-                }
+                if t.imu.ready() { app_handle.emit("imu-update", &msg).ok(); }
             }
             Payload::GpsInfo(msg) => {
-                if t.gps.ready() {
-                    app_handle.emit( "gps-update", &msg);
-                }
-                //println!("GPS update: lat {}, lon {}, alt {}, speed {}, heading {}", msg.latitude, msg.longitude, msg.altitude, msg.speed, msg.heading);
+                if t.gps.ready() { app_handle.emit("gps-update", &msg).ok(); }
             }
             Payload::PhInfo(msg) => {
-                if t.ph.ready() {
-                    app_handle.emit( "ph-update", &msg);
-                }
+                if t.ph.ready() { app_handle.emit("ph-update", &msg).ok(); }
             }
             Payload::ArmCtrl(msg) => {
-                if t.arm_ctrl.ready() {
-                    app_handle.emit( "arm-ctrl-update", &msg);
-                }
+                if t.arm_ctrl.ready() { app_handle.emit("arm-ctrl-update", &msg).ok(); }
             }
             Payload::ArmDiag(msg) => {
-                if t.arm_diag.ready() {
-                    app_handle.emit( "arm-diag-update", &msg);
-                }
+                if t.arm_diag.ready() { app_handle.emit("arm-diag-update", &msg).ok(); }
             }
             Payload::ArmFeedback(msg) => {
-                if t.arm_feedback.ready() {
-                    app_handle.emit( "arm-feedback-update", &msg);
-                }
+                if t.arm_feedback.ready() { app_handle.emit("arm-feedback-update", &msg).ok(); }
             }
             Payload::ArmPos(msg) => {
-                if t.arm_pos.ready() {
-                    app_handle.emit( "arm-pos-update", &msg);
-                }
+                if t.arm_pos.ready() { app_handle.emit("arm-pos-update", &msg).ok(); }
             }
             Payload::ArmTarget(msg) => {
-                if t.arm_target.ready() {
-                    app_handle.emit( "arm-target-update", &msg);
-                }
+                if t.arm_target.ready() { app_handle.emit("arm-target-update", &msg).ok(); }
             }
             Payload::ArmObstructions(msg) => {
-                if t.arm_obstructions.ready() {
-                    app_handle.emit( "arm-obstructions-update", &msg);
-                }
+                if t.arm_obstructions.ready() { app_handle.emit("arm-obstructions-update", &msg).ok(); }
             }
             Payload::DriveDiag(msg) => {
-                if t.drive_diag.ready() {
-                    app_handle.emit( "drive-diag-update", &msg);
-                }
+                if t.drive_diag.ready() { app_handle.emit("drive-diag-update", &msg).ok(); }
             }
             Payload::DriveMotor(msg) => {
-                if t.drive_motor.ready() {
-                    app_handle.emit( "drive-motor-update", &msg);
-                }
+                if t.drive_motor.ready() { app_handle.emit("drive-motor-update", &msg).ok(); }
             }
             Payload::DriveProgress(msg) => {
-                if t.drive_progress.ready() {
-                    app_handle.emit( "drive-progress-update", &msg);
-                }
+                if t.drive_progress.ready() { app_handle.emit("drive-progress-update", &msg).ok(); }
             }
             Payload::SensorDiag(msg) => {
-                if t.sensor_diag.ready() {
-                    app_handle.emit( "sensor-diag-update", &msg);
-                }
+                if t.sensor_diag.ready() { app_handle.emit("sensor-diag-update", &msg).ok(); }
             }
             Payload::ControlMode(msg) => {
-                if t.control_mode.ready() {
-                    app_handle.emit( "control-mode-update", &msg);
-                }
+                if t.control_mode.ready() { app_handle.emit("control-mode-update", &msg).ok(); }
             }
             Payload::DetectedObject(msg) => {
                 if msg.frame_id != det_frame {
-                    // Emit the incomplete previous frame rather than discarding it
                     if !det_buffer.is_empty() {
                         let handle = app_handle.clone();
                         let batch = det_buffer.clone();
@@ -203,7 +178,6 @@ pub async fn run_listener(
 
                 det_buffer.push(msg.clone());
 
-                // Also emit when frame is complete as before
                 if msg.index + 1 == msg.total_count {
                     let handle = app_handle.clone();
                     let batch = det_buffer.clone();
@@ -214,42 +188,30 @@ pub async fn run_listener(
                 }
             }
             Payload::ObjectSelection(msg) => {
-                if t.object_selection.ready() {
-                    app_handle.emit( "object-selection-update", &msg);
-                }
+                if t.object_selection.ready() { app_handle.emit("object-selection-update", &msg).ok(); }
             }
             Payload::LoadCellInfo(msg) => {
-                if t.load_cell.ready() {
-                    app_handle.emit("load-cell-update", &msg);
-                }
+                if t.load_cell.ready() { app_handle.emit("load-cell-update", &msg).ok(); }
             }
             Payload::PressureInfo(msg) => {
-                if t.pressure.ready() {
-                    app_handle.emit("pressure-update", &msg);
-                }
+                if t.pressure.ready() { app_handle.emit("pressure-update", &msg).ok(); }
             }
             Payload::RockMeasureRequest(msg) => {
-                if t.rock_measure_request.ready() {
-                    app_handle.emit("rock-measure-request-update", &msg);
-                }
+                if t.rock_measure_request.ready() { app_handle.emit("rock-measure-request-update", &msg).ok(); }
             }
             Payload::RockMeasureResult(msg) => {
-                if t.rock_measure_result.ready() {
-                    app_handle.emit("rock-measure-result-update", &msg);
-                }
+                if t.rock_measure_result.ready() { app_handle.emit("rock-measure-result-update", &msg).ok(); }
             }
             Payload::RoverLocalization(msg) => {
-                if t.rover_localization.ready() {
-                    app_handle.emit("rover-localization-update", &msg);
-                }
+                if t.rover_localization.ready() { app_handle.emit("rover-localization-update", &msg).ok(); }
             }
-            Payload::ManualDrive(msg)=> {
+            Payload::ManualDrive(msg) => {
                 println!("Manual drive command received: {:?}", msg);
             }
-            Payload::ManualBrake(msg)=> {
+            Payload::ManualBrake(msg) => {
                 println!("Manual brake command received: {:?}", msg);
             }
-            Payload::ManualArm(msg)=> {
+            Payload::ManualArm(msg) => {
                 println!("Manual arm command received: {:?}", msg);
             }
             other => {

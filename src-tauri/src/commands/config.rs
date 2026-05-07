@@ -5,11 +5,15 @@ use tauri::Manager;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RoverConfig {
     pub ip: String,
+    pub local_port: u16,
 }
 
 impl Default for RoverConfig {
     fn default() -> Self {
-        Self { ip: "127.0.0.1:9000".into() }
+        Self {
+            ip: "127.0.0.1:9000".into(),
+            local_port: 9000,
+        }
     }
 }
 
