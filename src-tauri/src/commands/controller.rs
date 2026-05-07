@@ -82,15 +82,15 @@ struct DriveState {
 /// Z and speed are driven by boolean buttons ramped over time via [`RampAxis`].
 struct PickupState {
     /// Right stick X -> end effector velocity X (positive = right, negative = left).
-    x: f32,
+    delta_x: f32,
     /// Right stick Y -> end effector velocity Y (positive = forward, negative = backward).
-    y: f32,
+    delta_y: f32,
     /// D-pad up/down -> end effector velocity Z, ramped. Positive = up, negative = down.
-    z: f32,
+    delta_z: f32,
     /// Left stick X  -> rotation (positive = clockwise, negative = counterclockwise).
     rotate: f32,
     /// Left stick Y  -> flick (positive = forward, negative = backward).
-    flick: f32,
+    delta_final_gripper_angle: f32,
     /// LeftTrigger (close, -1.0) / RightTrigger (open, +1.0) -> gripper speed, ramped.
     speed: f32,
     /// Ramp state for Z (DPadUp = positive, DPadDown = negative).
@@ -102,8 +102,8 @@ struct PickupState {
 impl Default for PickupState {
     fn default() -> Self {
         Self {
-            x: 0.0, y: 0.0, z: 0.0,
-            rotate: 0.0, flick: 0.0, speed: 0.0,
+            delta_x: 0.0, delta_y: 0.0, delta_z: 0.0,
+            rotate: 0.0, delta_final_gripper_angle: 0.0, speed: 0.0,
             z_ramp: Arc::new(Mutex::new(RampAxis::default())),
             speed_ramp: Arc::new(Mutex::new(RampAxis::default())),
         }
@@ -113,8 +113,8 @@ impl Default for PickupState {
 impl Clone for PickupState {
     fn clone(&self) -> Self {
         Self {
-            x: self.x, y: self.y, z: self.z,
-            rotate: self.rotate, flick: self.flick, speed: self.speed,
+            delta_x: self.delta_x, delta_y: self.delta_y, delta_z: self.delta_z,
+            rotate: self.rotate, delta_final_gripper_angle: self.delta_final_gripper_angle, speed: self.speed,
             // Arc clones share the same ramp instances so the ramp threads
             // always write to the same Mutex the event loop reads.
             z_ramp: Arc::clone(&self.z_ramp),
@@ -129,10 +129,10 @@ impl PickupState {
     fn update_axis(&mut self, axis: Axis, raw: f32) -> bool {
         let value = apply_deadzone(raw);
         let (current, new_val) = match axis {
-            Axis::RightStickX => (&mut self.x,      value),
-            Axis::RightStickY => (&mut self.y,      value),
+            Axis::RightStickX => (&mut self.delta_x,      value),
+            Axis::RightStickY => (&mut self.delta_y,      value),
             Axis::LeftStickX  => (&mut self.rotate, value),
-            Axis::LeftStickY  => (&mut self.flick,  value),
+            Axis::LeftStickY  => (&mut self.delta_final_gripper_angle,  value),
             _ => return false,
         };
         if (new_val - *current).abs() >= AXIS_CHANGE_THRESHOLD {
@@ -145,11 +145,11 @@ impl PickupState {
 
     fn to_proto(&self) -> BasestationManualArmMovement {
         BasestationManualArmMovement {
-            x:      scale_to_sint32(self.x),
-            y:      scale_to_sint32(self.y),
-            z:      scale_to_sint32(self.z),
+            delta_x:      scale_to_sint32(self.delta_x),
+            delta_y:      scale_to_sint32(self.delta_y),
+            delta_z:      scale_to_sint32(self.delta_z),
             rotate: scale_to_sint32(self.rotate),
-            flick:  scale_to_sint32(self.flick),
+            delta_final_gripper_angle:  scale_to_sint32(self.delta_final_gripper_angle),
             speed:  scale_to_sint32(self.speed),
         }
     }
@@ -545,7 +545,7 @@ pub fn start_controller_listener(app: AppHandle) {
                                         let shared = Arc::clone(&shared);
                                         let app = app.clone();
                                         move |v| {
-                                            shared.lock().unwrap().pickup.z = v;
+                                            shared.lock().unwrap().pickup.delta_z = v;
                                             dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
                                         }
                                     });
@@ -559,7 +559,7 @@ pub fn start_controller_listener(app: AppHandle) {
                                         let shared = Arc::clone(&shared);
                                         let app = app.clone();
                                         move |v| {
-                                            shared.lock().unwrap().pickup.z = v;
+                                            shared.lock().unwrap().pickup.delta_z = v;
                                             dispatch_arm(&app, shared.lock().unwrap().pickup.to_proto());
                                         }
                                     });
@@ -581,7 +581,7 @@ pub fn start_controller_listener(app: AppHandle) {
                                     //println!("[controller] DPad released -> Z = 0");
                                     let mut state = shared.lock().unwrap();
                                     state.pickup.z_ramp.lock().unwrap().release();
-                                    state.pickup.z = 0.0;
+                                    state.pickup.delta_z = 0.0;
                                     let proto = state.pickup.to_proto();
                                     drop(state);
                                     dispatch_arm(&app, proto);

@@ -23,7 +23,7 @@ pub async fn send_ping_cmd(
         state.service.lock().await;
     let socket = service.socket();
 
-    println!("Ping command received for packet type: {:?}", packet_type);
+    
 
     Ok(())
 }

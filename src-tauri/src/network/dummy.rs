@@ -206,6 +206,7 @@ fn gen_arm_target(t: f32) -> pb_envelope::Payload {
         target_z: 0.4 + (t * 0.1).sin() * 0.15,
         rotation_angle: (t * 0.15).sin() * 45.0,
         open_jaw: (t as u32 % 6) < 4,
+        final_gripper_angle: (t * 0.2).cos() * 90.0,
     })
 }
 
