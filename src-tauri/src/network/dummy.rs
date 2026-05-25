@@ -83,17 +83,17 @@ pub fn stream_table() -> Vec<StreamSpec> {
     vec![
         StreamSpec { interval: Duration::from_millis(20),  generator: gen_imu },
         StreamSpec { interval: Duration::from_millis(200), generator: gen_gps },
-        StreamSpec { interval: Duration::from_millis(500), generator: gen_ph },
-        StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_ctrl },
+        // StreamSpec { interval: Duration::from_millis(500), generator: gen_ph },
+        // StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_ctrl },
         StreamSpec { interval: Duration::from_millis(500), generator: gen_arm_diag },
         StreamSpec { interval: Duration::from_millis(100), generator: gen_arm_feedback },
         StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_pos },
-        StreamSpec { interval: Duration::from_millis(200), generator: gen_arm_target },
+        // StreamSpec { interval: Duration::from_millis(200), generator: gen_arm_target },
         StreamSpec { interval: Duration::from_millis(300), generator: gen_arm_obstructions },
-        StreamSpec { interval: Duration::from_millis(500), generator: gen_drive_diag },
-        StreamSpec { interval: Duration::from_millis(50),  generator: gen_drive_motor },
-        StreamSpec { interval: Duration::from_millis(100), generator: gen_drive_progress },
-        StreamSpec { interval: Duration::from_millis(500), generator: gen_sensor_diag },
+        // StreamSpec { interval: Duration::from_millis(500), generator: gen_drive_diag },
+        // StreamSpec { interval: Duration::from_millis(50),  generator: gen_drive_motor },
+        // StreamSpec { interval: Duration::from_millis(100), generator: gen_drive_progress },
+        // StreamSpec { interval: Duration::from_millis(500), generator: gen_sensor_diag },
         StreamSpec { interval: Duration::from_millis(50), generator: gen_detected_objects },
     ]
 }
@@ -444,7 +444,7 @@ fn make_object(id: u32) -> SimObject {
     // Cycle through the meaningful object types (skip UNKNOWN = 0)
     let types = [
         DetectedObjectType::ObjectMainSwitch,
-        DetectedObjectType::ObjectButton,
+        DetectedObjectType::ObjectRotaryPowerSwitch,
         DetectedObjectType::ObjectSwitch,
         DetectedObjectType::ObjectRotarySwitch,
         DetectedObjectType::ObjectSocket,
@@ -476,21 +476,27 @@ pub async fn run_simulator(
     config: SimulatorConfig,
     streams: Vec<StreamSpec>,  
 ) -> anyhow::Result<()> {
+    println!("[simulator] Starting, {} streams, sending to {addr}", streams.len());
+
     let socket_addr = addr.to_socket_addrs()?.next().unwrap();
     let mut last_times: Vec<Instant> = streams.iter().map(|_| Instant::now()).collect();
     let mut t = 0.0f32;
     let mut last_global = Instant::now();
-    let mut rng = Lcg::new(0xdeadbeef);
     let (tx, mut rx) = mpsc::channel::<Vec<u8>>(4096);
 
-    // Sender task
+    // Sender task — rng must be created inside so it stays on this task (Lcg is not Send)
     let socket_clone = socket.clone();
     let cfg = config.clone();
     tokio::spawn(async move {
+        let mut rng = Lcg::new(0xdeadbeef);
         while let Some(buf) = rx.recv().await {
+            // Drop packet randomly to simulate loss
             if rng.next_f32() < cfg.packet_loss { continue; }
+            // Add jitter if configured
             let jitter = (rng.next_f32() * cfg.jitter_ms as f32) as u64;
-            sleep(Duration::from_millis(jitter)).await;
+            if jitter > 0 {
+                sleep(Duration::from_millis(jitter)).await;
+            }
             let _ = socket_clone.send_to(&buf, socket_addr).await;
         }
     });
@@ -501,7 +507,8 @@ pub async fn run_simulator(
         tokio::select! {
             biased;
             _ = token.cancelled() => {
-                break;  // instant, no polling needed
+                println!("[simulator] Cancelled, shutting down");
+                break;
             }
             _ = sleep(Duration::from_millis(1)) => {
                 let now = Instant::now();
@@ -516,12 +523,14 @@ pub async fn run_simulator(
                         let envelope = PbEnvelope { payload: Some(payload) };
                         let mut buf = Vec::new();
                         if envelope.encode(&mut buf).is_ok() {
+                            // Optionally record raw packets to file
                             if let Some(file) = recorder.as_mut() {
                                 let _ = file.write_all(&(buf.len() as u32).to_le_bytes());
                                 let _ = file.write_all(&buf);
                             }
+                            // If receiver dropped (sender task exited), stop
                             if tx.send(buf).await.is_err() {
-                                break; // receiver dropped, simulator shutting down
+                                break;
                             }
                         }
                     }
@@ -539,16 +548,22 @@ pub fn spawn_simulator(
     config: SimulatorConfig,
     streams: Vec<StreamSpec>, 
 ) {
+    // Clone token before moving into thread to check it isn't already cancelled
+    if token.is_cancelled() {
+        eprintln!("[simulator] Token already cancelled before start!");
+        return;
+    }
+    
     std::thread::spawn(move || {
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .unwrap()
             .block_on(async move {
-                // Own socket, not shared with the listener
                 let socket = Arc::new(
                     UdpSocket::bind("0.0.0.0:0").await.unwrap()
                 );
+                println!("[simulator] Bound to {:?}, sending to {}", socket.local_addr(), target_addr);
                 run_simulator(socket, target_addr, token, config, streams).await.ok();
             });
     });

@@ -1,17 +1,10 @@
 // src-tauri/src/map_commands.rs
-//
-// Tauri commands the Svelte frontend calls via invoke().
 
-use std::path::PathBuf;
 use tauri::Manager;
 
 use crate::commands::map_processor::{process_map, MapMeta};
 
 /// Render a 3D map file to a top-down PNG.
-///
-/// Called from JS:
-///   invoke("render_map", { filename: "terrain.obj" })
-///
 /// The source file must already be in <appDataDir>/maps/.
 /// The rendered PNG is written to <appDataDir>/maps/<stem>_preview.png.
 /// Returns MapMeta so the frontend can do pixel→world transforms.
@@ -54,9 +47,6 @@ pub async fn render_map(
 
 /// Convert a pixel coordinate (from a click on the preview PNG) to
 /// real-world (X, Y) in metres.
-///
-/// Called from JS:
-///   invoke("pixel_to_world", { px, py, meta })
 #[tauri::command]
 pub fn pixel_to_world(px: f64, py: f64, meta: MapMeta) -> (f64, f64) {
     // px, py are display pixels from bottom-left of the displayed image.

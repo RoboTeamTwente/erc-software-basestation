@@ -165,7 +165,7 @@ fn main() -> Result<()> {
     }
 
     for original in &protos {
-        let patched = copy_and_patch_proto(original, &proto_root, &stable_proto_dir)?;
+        copy_and_patch_proto(original, &proto_root, &stable_proto_dir)?;
     }
 
     // Derive serde::Serialize on every generated message struct and enum.

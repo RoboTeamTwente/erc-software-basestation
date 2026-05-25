@@ -126,7 +126,6 @@
     async function loadRoverAddress() {
         try {
             roverAddress = await invoke<string>('get_rover_address');
-            localPort = await invoke<number>('get_local_port');
         } catch (e) {
             console.error('Failed to load rover address:', e);
         }

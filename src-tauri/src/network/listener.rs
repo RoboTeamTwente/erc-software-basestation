@@ -86,6 +86,8 @@ pub async fn run_listener(
     cancel: CancellationToken,
     app_handle: tauri::AppHandle,
 ) {
+    println!("[listener] Started, bound to {:?}", socket.local_addr());
+
     let mut buf = vec![0u8; 4096];
     let mut t = Throttles::new();
     let mut det_buffer: Vec<BasestationDetectedObject> = Vec::new();
@@ -126,6 +128,7 @@ pub async fn run_listener(
             }
             Payload::GpsInfo(msg) => {
                 if t.gps.ready() { app_handle.emit("gps-update", &msg).ok(); }
+                //println!("GPS update: lat {}, lon {}, alt {}", msg.latitude, msg.longitude, msg.altitude);
             }
             Payload::PhInfo(msg) => {
                 if t.ph.ready() { app_handle.emit("ph-update", &msg).ok(); }
@@ -150,12 +153,15 @@ pub async fn run_listener(
             }
             Payload::DriveDiag(msg) => {
                 if t.drive_diag.ready() { app_handle.emit("drive-diag-update", &msg).ok(); }
+                //println!("Drive diag update: front left {:?}, front right {:?}, middle left {:?}, middle right {:?}, back left {:?}, back right {:?}", msg.front_left_motor, msg.front_right_motor, msg.middle_left_motor, msg.middle_right_motor, msg.back_left_motor, msg.back_right_motor);
             }
             Payload::DriveMotor(msg) => {
                 if t.drive_motor.ready() { app_handle.emit("drive-motor-update", &msg).ok(); }
+                //println!("Drive motor update: left {}, right {}", msg.distance_to_go, msg.turning_radius);
             }
             Payload::DriveProgress(msg) => {
                 if t.drive_progress.ready() { app_handle.emit("drive-progress-update", &msg).ok(); }
+                //println!("Drive progress update: {} distance left", msg.distance_left);
             }
             Payload::SensorDiag(msg) => {
                 if t.sensor_diag.ready() { app_handle.emit("sensor-diag-update", &msg).ok(); }

@@ -6,7 +6,7 @@ use crate::UdpServiceHandle;
 
 use crate::network::service::UdpService;
 
-use crate::network::dummy::{StreamSpec, stream_table, SimulatorConfig};
+use crate::network::dummy::SimulatorConfig;
 
 
 pub struct DummyStreamHandle {
@@ -17,11 +17,10 @@ pub struct DummyStreamHandle {
 #[tauri::command]
 pub async fn send_ping_cmd(
     state: State<'_, UdpServiceHandle>,
-    packet_type: String
 ) -> Result<(), String> {
     let service: tokio::sync::MutexGuard<'_, UdpService> =
         state.service.lock().await;
-    let socket = service.socket();
+    let _socket = service.socket();
 
     
 
@@ -29,35 +28,36 @@ pub async fn send_ping_cmd(
 }
 
 
-// STREAM TABLE
-
-pub fn all_stream_specs() -> Vec<StreamSpec> {
-    stream_table()
-}
-
-
 // FULL SIMULATOR
 #[tauri::command]
 pub async fn start_dummy_streams(
+    app: tauri::AppHandle,
     handle: State<'_, DummyStreamHandle>,
 ) -> Result<(), String> {
+    println!("[sim] start_detection_sim called");
+
     if let Some(old_token) = handle.token.lock().await.take() {
+        println!("[sim] Cancelling old token"); 
         old_token.cancel();
     }
     let token = CancellationToken::new();
     *handle.token.lock().await = Some(token.clone());
 
+    let target = crate::commands::config::load_config(&app).ip;
+
     crate::network::dummy::spawn_simulator(
         token,
-        "127.0.0.1:9000".to_string(),
+        target,
         SimulatorConfig { jitter_ms: 30, packet_loss: 0.02, record_path: None },
         crate::network::dummy::stream_table(),
     );
     Ok(())
 }
 
+
 #[tauri::command]
 pub async fn start_detection_sim(
+    app: tauri::AppHandle,
     handle: State<'_, DummyStreamHandle>,
 ) -> Result<(), String> {
     if let Some(old_token) = handle.token.lock().await.take() {
@@ -66,11 +66,13 @@ pub async fn start_detection_sim(
     let token = CancellationToken::new();
     *handle.token.lock().await = Some(token.clone());
 
+    let target = crate::commands::config::load_config(&app).ip;
+
     crate::network::dummy::spawn_simulator(
         token,
-        "127.0.0.1:9000".to_string(),
+        target,
         SimulatorConfig { jitter_ms: 0, packet_loss: 0.0, record_path: None },
-        crate::network::dummy::detection_only_stream(), 
+        crate::network::dummy::detection_only_stream(),
     );
     println!("Detection-only simulator started");
     Ok(())

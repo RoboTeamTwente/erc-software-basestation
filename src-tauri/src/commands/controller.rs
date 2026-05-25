@@ -13,10 +13,7 @@ use crate::proto::packets::*;
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 /// Minimum axis delta (and deadzone boundary) before a drive/arm packet is sent.
-const AXIS_CHANGE_THRESHOLD: f32 = 0.05;
-
-/// How long a momentary brake (right trigger) stays engaged before auto-release.
-const MOMENTARY_BRAKE_DURATION: Duration = Duration::from_millis(500);
+const AXIS_CHANGE_THRESHOLD: f32 = 0.1;
 
 /// How often the last-known state is re-sent even without any changes.
 /// Acts as a keepalive so the rover never silently loses commanded state.
@@ -491,8 +488,8 @@ pub fn start_controller_listener(app: AppHandle) {
 
                             dispatch_brake(&app, true);
  
-                            let shared = Arc::clone(&shared);
-                            let app = app.clone();
+                            let _shared = Arc::clone(&shared);
+                            let _app = app.clone();
                             // thread::spawn(move || {
                             //     thread::sleep(MOMENTARY_BRAKE_DURATION);
                             //     //println!("[controller] Momentary brake released");

@@ -16,11 +16,6 @@ type FrameBuffer = Arc<Mutex<Option<Bytes>>>;
 // Tracks the last time a frame was received
 type LastFrameTime = Arc<Mutex<Option<Instant>>>;
 
-// Make this globally accessible via Tauri state
-pub struct CameraHealth {
-    pub stale: Arc<Mutex<Vec<(u16, bool)>>>,
-}
-
 
 pub async fn start_http_server(frames: FrameBuffer, port: u16) {
     let cors = warp::cors()

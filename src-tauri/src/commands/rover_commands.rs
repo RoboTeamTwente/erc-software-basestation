@@ -12,7 +12,7 @@ pub async fn request_coordinates(state: State<'_, UdpServiceHandle>, rover_addr:
     let service: tokio::sync::MutexGuard<'_, UdpService> =
         state.service.lock().await;
 
-    let socket = service.socket();
+    let _socket = service.socket();
 
     let _target = rover_addr.ip.lock().unwrap().clone();
 
@@ -29,7 +29,7 @@ pub async fn request_weight(state: State<'_, UdpServiceHandle>, rover_addr: Stat
     let service: tokio::sync::MutexGuard<'_, UdpService> =
         state.service.lock().await;
 
-    let socket = service.socket();
+    let _socket = service.socket();
 
     let _target = rover_addr.ip.lock().unwrap().clone();
 
@@ -79,9 +79,9 @@ pub async fn send_pixel(state: State<'_, UdpServiceHandle>, rover_addr: State<'_
     let service: tokio::sync::MutexGuard<'_, UdpService> =
         state.service.lock().await;
 
-    let socket = service.socket();
+    let _socket = service.socket();
 
-    let target = rover_addr.ip.lock().unwrap().clone();
+    let _target = rover_addr.ip.lock().unwrap().clone();
 
     println!("Received pixel from frontend: camera={}, x={}, y={}", camera, x, y);
     // Here you would send the pixel information to the rover
@@ -94,9 +94,8 @@ pub async fn select_object(state: State<'_, UdpServiceHandle>, rover_addr: State
 
     let service: tokio::sync::MutexGuard<'_, UdpService> =
         state.service.lock().await;
-
+        
     let socket = service.socket();
-    
     let target = rover_addr.ip.lock().unwrap().clone();
 
     // Build an envelope with the selected object ID (this is just an example, adjust as needed)

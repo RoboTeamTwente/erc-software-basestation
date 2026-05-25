@@ -23,7 +23,7 @@ pub async fn send_envelope(
 }
 
 /// Format a byte slice as "AA BB CC …" (hex), capped at 64 bytes to keep logs readable.
-fn hex_dump(bytes: &[u8]) -> String {
+fn _hex_dump(bytes: &[u8]) -> String {
     let preview = &bytes[..bytes.len().min(64)];
     let hex: Vec<String> = preview.iter().map(|b| format!("{b:02X}")).collect();
     let mut out = hex.join(" ");

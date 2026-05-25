@@ -239,9 +239,6 @@ fn render_heightmap(
         .save(out_path)
         .map_err(|e| format!("Failed to save PNG: {e}"))?;
 
-    // Capture pre-rotation dims for coordinate math
-    let pre_rot_w = img_w;
-    let pre_rot_h = img_h;
 
     // ... (existing rotate90 block) ...
 
