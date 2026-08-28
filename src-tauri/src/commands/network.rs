@@ -2,7 +2,9 @@ use tauri::State;
 
 use tokio::sync::Mutex; 
 use tokio_util::sync::CancellationToken;
+
 use crate::UdpServiceHandle;
+use crate::RoverAddress;
 
 use crate::network::service::UdpService;
 
@@ -33,6 +35,7 @@ pub async fn send_ping_cmd(
 pub async fn start_dummy_streams(
     app: tauri::AppHandle,
     handle: State<'_, DummyStreamHandle>,
+    rover_addr: State<'_, RoverAddress>,
 ) -> Result<(), String> {
     println!("[sim] start_detection_sim called");
 
@@ -43,7 +46,8 @@ pub async fn start_dummy_streams(
     let token = CancellationToken::new();
     *handle.token.lock().await = Some(token.clone());
 
-    let target = crate::commands::config::load_config(&app).ip;
+    let target = rover_addr.ip.lock().unwrap().clone();
+    println!("[sim] Starting simulator with target {}", target);
 
     crate::network::dummy::spawn_simulator(
         token,
@@ -59,6 +63,7 @@ pub async fn start_dummy_streams(
 pub async fn start_detection_sim(
     app: tauri::AppHandle,
     handle: State<'_, DummyStreamHandle>,
+    rover_addr: State<'_, RoverAddress>,
 ) -> Result<(), String> {
     if let Some(old_token) = handle.token.lock().await.take() {
         old_token.cancel();
@@ -66,7 +71,7 @@ pub async fn start_detection_sim(
     let token = CancellationToken::new();
     *handle.token.lock().await = Some(token.clone());
 
-    let target = crate::commands::config::load_config(&app).ip;
+    let target = rover_addr.ip.lock().unwrap().clone();
 
     crate::network::dummy::spawn_simulator(
         token,

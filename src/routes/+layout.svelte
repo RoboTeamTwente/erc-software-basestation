@@ -279,6 +279,7 @@
         {/if}
     </button>
 
+
     {#if braked}
         <div class="center-icons" style="margin-left: 4rem;"> 
             <img src="/parking.svg" alt="Parking icon" class="mode-icon"/>
@@ -287,6 +288,15 @@
 
     <!-- Right-aligned icons and controls -->
     <div class="right-icons">
+        <!-- Go on stage -->
+        <button class="button" onclick={() => invoke("go_on_stage")}>
+            Go on Stage
+        </button>
+
+        <!-- Stop going on stage -->
+        <button class="button" onclick={() => invoke("stop_going_on_stage")}>
+            Stop Going on Stage
+        </button>
         <!-- Settings icon link -->
         <div class="icon-link">
             <a href="/settings" onclick ={() => navigateTo('/settings')}>

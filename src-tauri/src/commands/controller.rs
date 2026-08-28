@@ -17,7 +17,7 @@ const AXIS_CHANGE_THRESHOLD: f32 = 0.1;
 
 /// How often the last-known state is re-sent even without any changes.
 /// Acts as a keepalive so the rover never silently loses commanded state.
-const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(2);
+const HEARTBEAT_INTERVAL: Duration = Duration::from_millis(500);
 
 /// Time in seconds for a ramped axis to travel from 0.0 to ±1.0 when held.
 const RAMP_DURATION_SECS: f32 = 1.0;
@@ -266,6 +266,12 @@ fn dispatch_drive(app: &AppHandle, drive: BasestationManualDrive) {
         app.state::<UdpServiceHandle>().service.lock().await.socket()
     });
     let target = app.state::<RoverAddress>().ip.lock().unwrap().clone();
+
+    let ts = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| format!("{}.{}", d.as_secs(), d.subsec_millis()))
+        .unwrap_or_else(|_| "unknown".into());
+    println!("[controller] [{}] Dispatching drive command: forward_backward = {}, turn = {}", ts, drive.forward_backward, drive.turn);
 
     tauri::async_runtime::spawn(async move {
         send_drive(socket, target, drive).await
@@ -594,8 +600,6 @@ pub fn start_controller_listener(app: AppHandle) {
                     _ => {}
                 }
             }
- 
-            thread::sleep(Duration::from_millis(8));
         }
     });
 }

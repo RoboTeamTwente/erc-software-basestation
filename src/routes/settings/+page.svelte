@@ -2,12 +2,18 @@
 // ----- EXTERNAL / TAURI -----
     import { confirm } from '@tauri-apps/plugin-dialog';
     import { invoke } from "@tauri-apps/api/core";
+    import Double_Video from '$lib/components/double_video.svelte';
+    import DoubleVideo from '$lib/components/double_video.svelte';
 
 
 // ----- STATE -----
     let taskFiles: string[] = [];
     let selectedFile: string | null = null;
     let fileContents = ""; 
+
+    let speed = $state<number | null>(null);
+    let maxAcceleration = $state<number | null>(null);
+    let drivingTime = $state<number | null>(null);
 
 
 // ----- UTILITIES -----
@@ -115,6 +121,8 @@
         } finally {
         loading = false;
         }
+
+        console.log('IP fetched:', ip);
     }
 
 // ----- CHANGE ADDRESSES -----
@@ -221,13 +229,23 @@
                 Ping UDP
             </button>
 
+            <button class="button" onclick={() => invoke("set_rover_profile", { speed, maxAcceleration, drivingTime })}>
+                    Set Rover driving Profile
+                </button>
+            <div style="margin-left: 10px; margin-right: 10px; margin-top: 10px; flex-direction: column; display: flex; gap: 10px;">
+                <input type="number" placeholder="Enter speed: 0-8000" bind:value={speed} />
+                <input type="number" placeholder="Enter max acceleration: 0-5000" bind:value={maxAcceleration} />
+                <input type="number" placeholder="Enter driving time (in ms): " bind:value={drivingTime} />
+            </div>
+
         </div>
     </div>
 
 
     <div class="grid-item" style="flex-direction: column;">
         <div class="container">
-            <h1 class="heading"> <span> My Info </span> </h1>
+            <DoubleVideo />
+            <!-- <h1 class="heading"> <span> My Info </span> </h1>
 
             <button class="button" style="margin: 10px" onclick={() => whereIsTheModel()}>
                 Where is the model
@@ -247,7 +265,7 @@
 
             {#if error}
             <p style="color:red">{error}</p>
-            {/if}
+            {/if} -->
 
         </div>
     </div>

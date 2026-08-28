@@ -66,6 +66,9 @@ pub fn run() {
             commands::load_model::debug_resource_dir,
             commands::map_commands::render_map,
             commands::map_commands::pixel_to_world,
+            commands::stage::go_on_stage,
+            commands::stage::stop_going_on_stage,
+            commands::stage::set_rover_profile,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();

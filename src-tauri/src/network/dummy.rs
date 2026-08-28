@@ -81,20 +81,20 @@ pub struct StreamSpec {
 
 pub fn stream_table() -> Vec<StreamSpec> {
     vec![
-        StreamSpec { interval: Duration::from_millis(20),  generator: gen_imu },
-        StreamSpec { interval: Duration::from_millis(200), generator: gen_gps },
+        // StreamSpec { interval: Duration::from_millis(20),  generator: gen_imu },
+        // StreamSpec { interval: Duration::from_millis(200), generator: gen_gps },
         // StreamSpec { interval: Duration::from_millis(500), generator: gen_ph },
         // StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_ctrl },
-        StreamSpec { interval: Duration::from_millis(500), generator: gen_arm_diag },
-        StreamSpec { interval: Duration::from_millis(100), generator: gen_arm_feedback },
-        StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_pos },
-        // StreamSpec { interval: Duration::from_millis(200), generator: gen_arm_target },
-        StreamSpec { interval: Duration::from_millis(300), generator: gen_arm_obstructions },
-        // StreamSpec { interval: Duration::from_millis(500), generator: gen_drive_diag },
-        // StreamSpec { interval: Duration::from_millis(50),  generator: gen_drive_motor },
-        // StreamSpec { interval: Duration::from_millis(100), generator: gen_drive_progress },
-        // StreamSpec { interval: Duration::from_millis(500), generator: gen_sensor_diag },
-        StreamSpec { interval: Duration::from_millis(50), generator: gen_detected_objects },
+        // StreamSpec { interval: Duration::from_millis(500), generator: gen_arm_diag },
+        // StreamSpec { interval: Duration::from_millis(100), generator: gen_arm_feedback },
+        // StreamSpec { interval: Duration::from_millis(50),  generator: gen_arm_pos },
+        // // StreamSpec { interval: Duration::from_millis(200), generator: gen_arm_target },
+        // StreamSpec { interval: Duration::from_millis(300), generator: gen_arm_obstructions },
+        // // StreamSpec { interval: Duration::from_millis(500), generator: gen_drive_diag },
+        // // StreamSpec { interval: Duration::from_millis(50),  generator: gen_drive_motor },
+        // // StreamSpec { interval: Duration::from_millis(100), generator: gen_drive_progress },
+        // // StreamSpec { interval: Duration::from_millis(500), generator: gen_sensor_diag },
+        // StreamSpec { interval: Duration::from_millis(50), generator: gen_detected_objects },
     ]
 }
 
